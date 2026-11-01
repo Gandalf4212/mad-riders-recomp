@@ -86,6 +86,16 @@ jobs:
           path: rexglue-sdk-install
           key: ${{ steps.sdk-cache.outputs.cache-primary-key }}
 
+      # License text for the release zip (also covers the Xenia-derived parts).
+      - name: Fetch SDK license
+        uses: actions/checkout@v4
+        with:
+          repository: rexglue/rexglue-sdk
+          ref: ${{ env.REXGLUE_SDK_REF }}
+          path: rexglue-sdk-license
+          sparse-checkout: LICENSE
+          sparse-checkout-cone-mode: false
+
       # ---------- Game ----------
       - name: Compiler cache for generated code
         uses: hendrikmuhs/ccache-action@v1.2
@@ -123,12 +133,13 @@ jobs:
           New-Item -ItemType Directory -Force dist\licenses | Out-Null
           Copy-Item LICENSE dist\licenses\mad-riders-recomp-LICENSE.txt
           Copy-Item THIRD_PARTY_NOTICES.md dist\licenses\
+          Copy-Item rexglue-sdk-license\LICENSE dist\licenses\rexglue-sdk-LICENSE.txt
           # SDK + third-party licenses (BSD-3-Clause, Xenia, SDL3, ...): installed to <prefix>\licenses
           foreach ($d in @("licenses", "share\licenses")) {
             $src = Join-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install" $d
             if (Test-Path $src) { Copy-Item -Recurse -Force "$src\*" dist\licenses\ }
           }
-          if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.Name -ne 'mad-riders-recomp-LICENSE.txt' })) {
+          if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.Name -notin @('mad-riders-recomp-LICENSE.txt', 'rexglue-sdk-LICENSE.txt') })) {
             Write-Error "SDK license files not found"; exit 1
           }
           Get-ChildItem dist\licenses -Recurse | Select-Object -ExpandProperty FullName
