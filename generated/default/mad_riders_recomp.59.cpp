@@ -8441,6 +8441,19 @@ loc_82745A7C:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_82785DB0) {
+	REX_FUNC_PROLOGUE();
+	// lwz r11,0(r3)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r3.u32 + 0);
+	// lwz r10,2240(r11)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r11.u32 + 2240);
+	// mtctr r10
+	ctx.ctr.u64 = ctx.r10.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_827945D8) {
 	REX_FUNC_PROLOGUE();
 	PPCRegister temp{};
@@ -15454,6 +15467,26 @@ loc_82A1364C:
 	__restfpr_28(ctx, base);
 	// b 0x82e3da2c
 	__restgprlr_25(ctx, base);
+	return;
+}
+
+DEFINE_REX_FUNC(sub_82A169F8) {
+	REX_FUNC_PROLOGUE();
+	PPCRegister temp{};
+	// lwz r11,24(r3)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r3.u32 + 24);
+	// lwz r10,24(r4)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r4.u32 + 24);
+	// subfc r9,r10,r11
+	ctx.xer.ca = ctx.r11.u32 >= ctx.r10.u32;
+	ctx.r9.u64 = ctx.r11.u64 - ctx.r10.u64;
+	// subfe r7,r8,r8
+	temp.u8 = (~ctx.r8.u32 + ctx.r8.u32 < ~ctx.r8.u32) | (~ctx.r8.u32 + ctx.r8.u32 + ctx.xer.ca < ctx.xer.ca);
+	ctx.r7.u64 = ~ctx.r8.u64 + ctx.r8.u64 + ctx.xer.ca;
+	ctx.xer.ca = temp.u8;
+	// clrlwi r3,r7,31
+	ctx.r3.u64 = ctx.r7.u32 & 0x1;
+	// blr 
 	return;
 }
 

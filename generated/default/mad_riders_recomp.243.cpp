@@ -17796,6 +17796,32 @@ loc_82B1CA0C:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_82B35D20) {
+	REX_FUNC_PROLOGUE();
+	PPCRegister temp{};
+	// lis r11,-32244
+	ctx.r11.s64 = -2113142784;
+	// addi r4,r3,896
+	ctx.r4.s64 = ctx.r3.s64 + 896;
+	// li r10,0
+	ctx.r10.s64 = 0;
+	// li r8,2
+	ctx.r8.s64 = 2;
+	// li r5,0
+	ctx.r5.s64 = 0;
+	// lfs f3,10016(r11)
+	ctx.fpscr.disableFlushMode();
+	temp.u32 = REX_LOAD_U32(ctx.r11.u32 + 10016);
+	ctx.f3.f64 = double(temp.f32);
+	// fmr f2,f3
+	ctx.f2.f64 = ctx.f3.f64;
+	// fmr f1,f3
+	ctx.f1.f64 = ctx.f3.f64;
+	// b 0x824133b0
+	sub_824133B0(ctx, base);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_82B667F8) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};

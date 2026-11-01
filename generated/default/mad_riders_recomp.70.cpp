@@ -14701,6 +14701,19 @@ loc_829FEC8C:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_82A04B58) {
+	REX_FUNC_PROLOGUE();
+	// lwz r11,0(r3)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r3.u32 + 0);
+	// lwz r10,740(r11)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r11.u32 + 740);
+	// mtctr r10
+	ctx.ctr.u64 = ctx.r10.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_82A204D0) {
 	REX_FUNC_PROLOGUE();
 	PPCRegister temp{};
@@ -21332,6 +21345,13 @@ loc_82C9B740:
 	// ld r31,-16(r1)
 	ctx.r31.u64 = REX_LOAD_U64(ctx.r1.u32 + -16);
 	// blr 
+	return;
+}
+
+DEFINE_REX_FUNC(sub_82CA5AB0) {
+	REX_FUNC_PROLOGUE();
+	// b 0x82ca6c60
+	sub_82CA6C60(ctx, base);
 	return;
 }
 

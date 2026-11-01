@@ -30273,6 +30273,38 @@ loc_83083BDC:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_830AA8B8) {
+	REX_FUNC_PROLOGUE();
+	// lhz r11,40(r3)
+	ctx.r11.u64 = REX_LOAD_U16(ctx.r3.u32 + 40);
+	// lwz r10,52(r3)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r3.u32 + 52);
+	// twllei r11,0
+	if (ctx.r11.s32 == 0 || ctx.r11.u32 < 0u) ppc_trap(ctx, base, 0);
+	// divwu r11,r10,r11
+	ctx.r11.u64 = uint32_t(ctx.r11.u32 ? ctx.r10.u32 / ctx.r11.u32 : 0);
+	// cmplw cr6,r4,r11
+	ctx.cr6.compare<uint32_t>(ctx.r4.u32, ctx.r11.u32, ctx.xer);
+	// ble cr6,0x830aa8e4
+	if (!ctx.cr6.gt) goto loc_830AA8E4;
+	// subf r5,r11,r4
+	ctx.r5.u64 = ctx.r4.u64 - ctx.r11.u64;
+	// lhz r4,36(r3)
+	ctx.r4.u64 = REX_LOAD_U16(ctx.r3.u32 + 36);
+	// lhz r3,38(r3)
+	ctx.r3.u64 = REX_LOAD_U16(ctx.r3.u32 + 38);
+	// li r6,0
+	ctx.r6.s64 = 0;
+	// b 0x830c1f90
+	sub_830C1F90(ctx, base);
+	return;
+loc_830AA8E4:
+	// li r3,0
+	ctx.r3.s64 = 0;
+	// blr 
+	return;
+}
+
 DEFINE_REX_FUNC(sub_830B14B0) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};

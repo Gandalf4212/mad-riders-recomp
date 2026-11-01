@@ -17832,6 +17832,13 @@ DEFINE_REX_FUNC(sub_82B8E538) {
 	return;
 }
 
+DEFINE_REX_FUNC(sub_82B8E658) {
+	REX_FUNC_PROLOGUE();
+	// b 0x82b95118
+	sub_82B95118(ctx, base);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_82B92848) {
 	REX_FUNC_PROLOGUE();
 	// lbz r3,2760(r3)
@@ -30937,6 +30944,27 @@ loc_830B7320:
 	// mtlr r12
 	ctx.lr = ctx.r12.u64;
 	// blr 
+	return;
+}
+
+DEFINE_REX_FUNC(sub_8311C710) {
+	REX_FUNC_PROLOGUE();
+	// lwz r10,64(r3)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r3.u32 + 64);
+	// lwz r11,48(r3)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r3.u32 + 48);
+	// mulli r10,r10,60
+	ctx.r10.s64 = static_cast<int64_t>(ctx.r10.u64 * static_cast<uint64_t>(60));
+	// lwzx r9,r10,r11
+	ctx.r9.u64 = REX_LOAD_U32(ctx.r10.u32 + ctx.r11.u32);
+	// add r3,r10,r11
+	ctx.r3.u64 = ctx.r10.u64 + ctx.r11.u64;
+	// lwz r8,56(r9)
+	ctx.r8.u64 = REX_LOAD_U32(ctx.r9.u32 + 56);
+	// mtctr r8
+	ctx.ctr.u64 = ctx.r8.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
 	return;
 }
 

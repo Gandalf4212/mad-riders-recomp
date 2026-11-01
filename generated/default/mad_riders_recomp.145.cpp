@@ -28724,14 +28724,6 @@ DEFINE_REX_FUNC(sub_8304B928) {
 	return;
 }
 
-DEFINE_REX_FUNC(sub_8304BEB8) {
-	REX_FUNC_PROLOGUE();
-	// lwz r3,8(r3)
-	ctx.r3.u64 = REX_LOAD_U32(ctx.r3.u32 + 8);
-	// blr 
-	return;
-}
-
 DEFINE_REX_FUNC(sub_8304C1E0) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};

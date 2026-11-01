@@ -2,3 +2,5 @@ image.bin
 jt.json
 jt_bad.json
 xexdump
+ptr_funcs.json
+code_ptr_funcs.json

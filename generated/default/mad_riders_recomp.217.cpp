@@ -1943,6 +1943,32 @@ loc_8247AD2C:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_824A99A0) {
+	REX_FUNC_PROLOGUE();
+	// lwz r12,0(r3)
+	ctx.r12.u64 = REX_LOAD_U32(ctx.r3.u32 + 0);
+	// lwz r11,44(r12)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r12.u32 + 44);
+	// mtctr r11
+	ctx.ctr.u64 = ctx.r11.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
+	return;
+}
+
+DEFINE_REX_FUNC(sub_824A99D0) {
+	REX_FUNC_PROLOGUE();
+	// lwz r12,0(r3)
+	ctx.r12.u64 = REX_LOAD_U32(ctx.r3.u32 + 0);
+	// lwz r11,4(r12)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r12.u32 + 4);
+	// mtctr r11
+	ctx.ctr.u64 = ctx.r11.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_824DE488) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};
@@ -16314,6 +16340,28 @@ loc_82819AD8:
 	return;
 }
 
+DEFINE_REX_FUNC(sub_829F1588) {
+	REX_FUNC_PROLOGUE();
+	// cmplwi cr6,r3,0
+	ctx.cr6.compare<uint32_t>(ctx.r3.u32, 0, ctx.xer);
+	// addi r3,r3,-8
+	ctx.r3.s64 = ctx.r3.s64 + -8;
+	// bne cr6,0x829f1598
+	if (!ctx.cr6.eq) goto loc_829F1598;
+	// li r3,0
+	ctx.r3.s64 = 0;
+loc_829F1598:
+	// lwz r11,0(r3)
+	ctx.r11.u64 = REX_LOAD_U32(ctx.r3.u32 + 0);
+	// lwz r10,1884(r11)
+	ctx.r10.u64 = REX_LOAD_U32(ctx.r11.u32 + 1884);
+	// mtctr r10
+	ctx.ctr.u64 = ctx.r10.u64;
+	// bctr 
+	REX_CALL_INDIRECT_FUNC(ctx.ctr.u32);
+	return;
+}
+
 DEFINE_REX_FUNC(sub_82B10060) {
 	REX_FUNC_PROLOGUE();
 	uint32_t ea{};
@@ -27370,24 +27418,6 @@ loc_82F845B0:
 	ctx.r1.s64 = ctx.r1.s64 + 176;
 	// b 0x82e3da28
 	__restgprlr_24(ctx, base);
-	return;
-}
-
-DEFINE_REX_FUNC(sub_82FC6AE4) {
-	REX_FUNC_PROLOGUE();
-	PPCRegister temp{};
-	// subfc r11,r8,r11
-	ctx.xer.ca = ctx.r11.u32 >= ctx.r8.u32;
-	ctx.r11.u64 = ctx.r11.u64 - ctx.r8.u64;
-	// subfe r11,r11,r11
-	temp.u8 = (~ctx.r11.u32 + ctx.r11.u32 < ~ctx.r11.u32) | (~ctx.r11.u32 + ctx.r11.u32 + ctx.xer.ca < ctx.xer.ca);
-	ctx.r11.u64 = ~ctx.r11.u64 + ctx.r11.u64 + ctx.xer.ca;
-	ctx.xer.ca = temp.u8;
-	// rlwinm r11,r11,0,0,30
-	ctx.r11.u64 = __builtin_rotateleft64(ctx.r11.u32 | (ctx.r11.u64 << 32), 0) & 0xFFFFFFFE;
-	// addi r3,r11,1
-	ctx.r3.s64 = ctx.r11.s64 + 1;
-	// blr 
 	return;
 }
 

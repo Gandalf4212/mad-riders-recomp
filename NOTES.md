@@ -31,6 +31,7 @@ No title update (.xexp) was in the package.
 |---|---|
 | 0x825B1C60 | Target of thunk `sub_825B1CD8` (`b 0x825B1C60`); separate function that follows the 4-instruction `sub_825B1C50` |
 | 0x826C1D54 (switch) | Jump table in sub_826C1A98 read with the wrong index register (r11, 1 entry; really r9, 79 entries). Crashed with an illegal instruction on the first run. All 196 absolute jump tables checked with `tools/cmp_jt.py`. |
+| 58 + 323 functions | Reached only through pointers, so the analyzer folded them into the code before them: 56 from vtables/callback tables in .rdata/.data (`tools/scan_ptr_funcs.py`, e.g. `0x830B3070`, which crashed the second run with "call to unregistered function") and 323 whose address is built in code and stored or passed as a callback (`tools/scan_code_ptrs.py`). |
 | 0x82C95D00 | Target of thunk `sub_82C95FD8` (`b 0x82C95D00`); separate function that follows the 26-instruction `sub_82C95C98` |
 
 ## Earlier XenonRecomp attempt (for reference)
