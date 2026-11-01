@@ -47,6 +47,7 @@ set(MADRIDERS_SOURCES
     src/main.cpp
     src/game_menu.cpp
     src/package_setup.cpp
+    src/crash_handler.cpp
 )
 
 if(WIN32)
@@ -58,5 +59,11 @@ endif()
 rexglue_setup_target(mad_riders GPU_PLUGINS xenos)
 
 if(WIN32)
-    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32)
+    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp)
+endif()
+
+# CI passes the commit so logs say which build produced them.
+set(MADRIDERS_BUILD "" CACHE STRING "Build identifier shown in the log")
+if(MADRIDERS_BUILD)
+    target_compile_definitions(mad_riders PRIVATE MADRIDERS_BUILD="${MADRIDERS_BUILD}")
 endif()

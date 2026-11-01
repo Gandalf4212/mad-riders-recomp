@@ -20,9 +20,14 @@
 
 #include <imgui.h>
 
+#include "crash_handler.h"
 #include "game_keys.h"
 #include "game_menu.h"
 #include "package_setup.h"
+
+#ifndef MADRIDERS_BUILD
+#define MADRIDERS_BUILD "local"
+#endif
 
 // The default.xex this build was recompiled from (Mad Riders XBLA, 0.0.0.2).
 inline constexpr package_setup::GameInfo kMadRiders{
@@ -43,6 +48,7 @@ class MadRidersApp : public rex::ReXApp {
   // file dialog). --game_data_root still overrides it.
   void OnConfigurePaths(rex::PathConfig& paths) override {
     const auto exe_dir = rex::filesystem::GetExecutableFolder();
+    crash_handler::install(exe_dir);
     if (paths.game_data_root.empty()) {
       paths.game_data_root = exe_dir / "assets";
     }
@@ -53,6 +59,7 @@ class MadRidersApp : public rex::ReXApp {
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
+    REXLOG_INFO("Mad Riders recomp, build {}", MADRIDERS_BUILD);
     // GPU emulation is opt-in in ReXGlue; default to the Xenos plugin.
     if (config.gpu_plugin.empty()) {
       config.gpu_plugin = "xenos";
@@ -74,12 +81,18 @@ class MadRidersApp : public rex::ReXApp {
                                std::to_string(recomp_ui::game_keys::kDefaultAudioFrames));
       recomp_ui::GameMenu::ApplyDefaultKeys();
       rex::cvar::SetFlagByName("recomp_defaults_applied", "true");
-      rex::cvar::SetFlagByName("recomp_defaults_version", "1");
       if (!config_path_.empty()) {
         rex::cvar::SaveConfig(config_path_);
       }
       REXLOG_INFO("First launch: wrote default settings to {}",
                   config_path_.filename().string());
+    }
+    // Defaults added by later builds, applied once on top of existing settings.
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 2) {
+      // Write the log out every second so the lines before a crash aren't lost.
+      rex::cvar::SetFlagByName("log_flush_interval", "1");
+      rex::cvar::SetFlagByName("recomp_defaults_version", "2");
+      if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
     }
   }
 
@@ -100,6 +113,8 @@ class MadRidersApp : public rex::ReXApp {
 
   // The game must not see keys/buttons while the menu is open.
   void OnPostSetup() override {
+    // Re-assert the crash filter in case SDL or a driver replaced it.
+    crash_handler::install(rex::filesystem::GetExecutableFolder());
     auto* input_sys = static_cast<rex::input::InputSystem*>(runtime()->input_system());
     if (input_sys && imgui_drawer()) {
       input_sys->SetActiveCallback([this]() {
