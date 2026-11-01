@@ -4,3 +4,4 @@ jt_bad.json
 xexdump
 ptr_funcs.json
 code_ptr_funcs.json
+__pycache__/

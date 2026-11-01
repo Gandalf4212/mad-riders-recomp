@@ -16,11 +16,13 @@
 #include <rex/logging.h>
 #include <rex/rex_app.h>
 #include <rex/runtime.h>
+#include <rex/system/xmemory.h>
 #include <rex/ui/keybinds.h>
 
 #include <imgui.h>
 
 #include "crash_handler.h"
+#include "debug_dump.h"
 #include "game_keys.h"
 #include "game_menu.h"
 #include "package_setup.h"
@@ -102,6 +104,14 @@ class MadRidersApp : public rex::ReXApp {
                           [this] { ToggleMenu(); });
     rex::ui::RegisterBind("bind_menu_alt", "Escape", "Open/close the settings menu",
                           [this] { ToggleMenu(); });
+    // Debug: F8 saves a memory snapshot (memdump_<time> next to the exe) for
+    // offline analysis, e.g. finding decoded video frames.
+    rex::ui::RegisterBind("bind_memdump", "F8", "Save a memory snapshot (debug)", [this] {
+      auto dir = debug_dump::save_memory(runtime()->memory(),
+                                         rex::filesystem::GetExecutableFolder());
+      rex::FlushLogging();
+      REXLOG_INFO("F8 memory snapshot: {}", dir.empty() ? "failed" : dir.string());
+    });
     rex::ui::RegisterBind("bind_fullscreen", "F11", "Toggle fullscreen", [this] {
       if (menu_ && menu_->capturing()) return;
       bool fs = !window()->IsFullscreen();

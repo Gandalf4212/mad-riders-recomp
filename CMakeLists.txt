@@ -48,6 +48,7 @@ set(MADRIDERS_SOURCES
     src/game_menu.cpp
     src/package_setup.cpp
     src/crash_handler.cpp
+    src/debug_dump.cpp
 )
 
 if(WIN32)
