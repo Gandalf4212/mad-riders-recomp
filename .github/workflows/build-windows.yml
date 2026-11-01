@@ -123,9 +123,15 @@ jobs:
           New-Item -ItemType Directory -Force dist\licenses | Out-Null
           Copy-Item LICENSE dist\licenses\mad-riders-recomp-LICENSE.txt
           Copy-Item THIRD_PARTY_NOTICES.md dist\licenses\
-          if (Test-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses") {
-            Copy-Item -Recurse "$env:GITHUB_WORKSPACE\rexglue-sdk-install\share\licenses\*" dist\licenses\
+          # SDK + third-party licenses (BSD-3-Clause, Xenia, SDL3, ...): installed to <prefix>\licenses
+          foreach ($d in @("licenses", "share\licenses")) {
+            $src = Join-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install" $d
+            if (Test-Path $src) { Copy-Item -Recurse -Force "$src\*" dist\licenses\ }
           }
+          if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.FullName -notmatch 'mad-riders' })) {
+            Write-Error "SDK license files not found"; exit 1
+          }
+          Get-ChildItem dist\licenses -Recurse | Select-Object -ExpandProperty FullName
           Get-ChildItem dist
 
       - name: Upload build

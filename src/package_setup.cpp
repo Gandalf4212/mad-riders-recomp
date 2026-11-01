@@ -23,7 +23,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <commctrl.h>
 #include <commdlg.h>
@@ -102,7 +104,8 @@ void sha1(const uint8_t* data, size_t len, uint8_t out[20]) {
 FILE* open_file(const fs::path& p, const char* mode) {
 #ifdef _WIN32
   std::wstring wmode(mode, mode + strlen(mode));
-  return _wfopen(p.wstring().c_str(), wmode.c_str());
+  FILE* f = nullptr;
+  return _wfopen_s(&f, p.wstring().c_str(), wmode.c_str()) == 0 ? f : nullptr;
 #else
   return fopen(p.string().c_str(), mode);
 #endif
