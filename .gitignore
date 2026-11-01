@@ -1,0 +1,18 @@
+# Game files: never commit (copyrighted; supply your own legally obtained copy)
+assets/*
+!assets/README.md
+*.xex
+*.xexp
+*.iso
+*.god
+
+# Generated C++ (recompiled game code, ~270 MB; regenerate with `rexglue codegen`)
+generated/*
+!generated/rexglue.cmake
+
+# Build output
+out/
+build/
+.vs/
+.vscode/
+*.log

@@ -1,0 +1,7 @@
+# Mad Riders codegen overrides, included from mad_riders_manifest.toml.
+
+[functions]
+# Targets of tail-call thunks that land mid-function (secondary entry points).
+# sub_825B1CD8 is `b 0x825B1C60`; sub_82C95FD8 is `b 0x82C95D00`.
+0x825B1C60 = {}
+0x82C95D00 = {}
