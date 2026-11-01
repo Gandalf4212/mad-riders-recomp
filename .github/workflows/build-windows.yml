@@ -1,12 +1,14 @@
 name: Build Windows
 
 # Every push to main builds the game (download it from the run's "Artifacts").
-# Pushing a v* tag also attaches a zip to a GitHub Release.
+# Publishing a GitHub Release (or pushing a v* tag) also attaches a zip to that release.
 # No game files are used or produced: the exe asks for the player's own package on first start.
 on:
   push:
     branches: [main]
     tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
