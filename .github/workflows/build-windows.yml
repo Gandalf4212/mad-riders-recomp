@@ -128,7 +128,7 @@ jobs:
             $src = Join-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install" $d
             if (Test-Path $src) { Copy-Item -Recurse -Force "$src\*" dist\licenses\ }
           }
-          if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.FullName -notmatch 'mad-riders' })) {
+          if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.Name -ne 'mad-riders-recomp-LICENSE.txt' })) {
             Write-Error "SDK license files not found"; exit 1
           }
           Get-ChildItem dist\licenses -Recurse | Select-Object -ExpandProperty FullName
