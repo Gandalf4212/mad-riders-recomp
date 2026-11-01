@@ -20,7 +20,9 @@ No title update (.xexp) was in the package.
 - [x] Package extracted (STFS LIVE, content type 000D0000 = XBLA)
 - [x] ReXGlue project scaffolded (`rexglue init`, SDK v0.10.0-dev)
 - [x] Codegen passes analysis with **0 errors** (515 generated files, ~266 MB)
-- [ ] Build the SDK + project on Windows
+- [x] Generated code committed; GitHub Actions Windows build
+- [x] First-run setup: finds or asks for the package, extracts it, checks xex SHA-1
+- [x] F1/Esc settings menu, key rebinding (adapted from afterburner-climax-recomp)
 - [ ] First boot: fill in missing kernel imports / stubs
 - [ ] Graphics, audio, input
 
@@ -38,22 +40,5 @@ Helper addresses found then, in case they're needed:
 `restfpr_14 0x82E4F1BC`, `savevmx_14 0x831F3AC0`, `restvmx_14 0x831F3D58`,
 `savevmx_64 0x831F3B54`, `restvmx_64 0x831F3DEC`, `setjmp 0x831F37F0`, `longjmp 0x82E477B0`.
 
-## Building on Windows
-Prereqs: CMake 3.25+, Ninja, Visual Studio 2022 with "Desktop development with C++"
-plus **C++ Clang Compiler for Windows (20.x+)** and **MSBuild support for LLVM (clang-cl)**.
-
-1. Build and install the SDK once:
-   ```
-   git clone --recursive https://github.com/rexglue/rexglue-sdk.git
-   cd rexglue-sdk
-   cmake --preset win-amd64
-   cmake --build out/build/win-amd64 --config Release --target install
-   ```
-2. In this repo, copy `default.xex` (and the rest of the extracted game) into `assets/`.
-3. Generate code and build:
-   ```
-   rexglue codegen mad_riders_manifest.toml
-   cmake --preset win-amd64
-   cmake --build --preset win-amd64-release
-   ```
-Run these from a "x64 Native Tools Command Prompt for VS 2022".
+## Building
+See README.md.
