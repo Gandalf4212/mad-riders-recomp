@@ -30,6 +30,7 @@ No title update (.xexp) was in the package.
 | Address | Why |
 |---|---|
 | 0x825B1C60 | Target of thunk `sub_825B1CD8` (`b 0x825B1C60`); separate function that follows the 4-instruction `sub_825B1C50` |
+| 0x826C1D54 (switch) | Jump table in sub_826C1A98 read with the wrong index register (r11, 1 entry; really r9, 79 entries). Crashed with an illegal instruction on the first run. All 196 absolute jump tables checked with `tools/cmp_jt.py`. |
 | 0x82C95D00 | Target of thunk `sub_82C95FD8` (`b 0x82C95D00`); separate function that follows the 26-instruction `sub_82C95C98` |
 
 ## Earlier XenonRecomp attempt (for reference)
