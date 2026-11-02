@@ -22,8 +22,14 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      # DiligentCore's submodules (SPIRV-Cross test files) need long paths on Windows.
+      - name: Submodules (long paths)
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git submodule update --init --recursive --depth 1 --jobs 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install LLVM (clang 20+) and Ninja
         shell: pwsh
