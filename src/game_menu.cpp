@@ -53,7 +53,7 @@ enum MainRow {
   kWindowSize,
   kRenderRes,
   kAntiAlias,
-  kVsync,
+  kFrameRate,
   kAspect,
   kFiltering,
   kAudioBuffer,
@@ -106,6 +106,16 @@ int AaIndex() {
   return 0;
 }
 
+// recomp_frame_rate values and labels (0 = uncapped)
+const int kFrameRates[] = {30, 60, 120, 0};
+const char* const kFrameRateLabels[] = {"30 FPS (original)", "60 FPS", "120 FPS", "Uncapped"};
+constexpr int kFrameRateCount = 4;
+int FrameRateIndex() {
+  int v = GetInt("recomp_frame_rate");
+  for (int i = 0; i < kFrameRateCount; i++) if (kFrameRates[i] == v) return i;
+  return 0;
+}
+
 const char* const kPerfLabels[] = {"Off", "FPS", "FPS + frame times"};
 
 const char* const kRenderLabels[] = {"1x  1280x720 (original)", "2x  2560x1440", "3x  3840x2160"};
@@ -117,7 +127,7 @@ const char* MainLabel(int row) {
     case kRenderRes: return "Render resolution";
     case kAntiAlias: return "Anti-aliasing";
     case kPerfOverlay: return "Performance overlay";
-    case kVsync: return "VSync";
+    case kFrameRate: return "Frame rate";
     case kAspect: return "Aspect ratio";
     case kFiltering: return "Texture filtering";
     case kAudioBuffer: return "Audio buffer";
@@ -137,7 +147,7 @@ const char* MainNote(int row) {
     case kRenderRes: return "2x/3x renders bigger and scales down: smoothest edges. Next launch.";
     case kAntiAlias: return "Smooths jagged edges after rendering; cheap, slightly softer. Next launch.";
     case kPerfOverlay: return "Game frame rate and frame time in the top-right corner.";
-    case kVsync: return "Wait for the monitor refresh. Off can tear.";
+    case kFrameRate: return "30 is the original. Higher may change game speed: test it. Next launch.";
     case kAspect: return "Keep 16:9 adds black bars on other window shapes.";
     case kFiltering: return "Sharper textures seen at an angle.";
     case kAudioBuffer: return "Bigger fixes crackles and dropouts, smaller has less delay. Next launch.";
@@ -167,12 +177,12 @@ int AnisoIndex() {
 // Value text for an option row, or nullptr for an action row.
 std::string MainValue(int row) {
   switch (row) {
-    case kDisplayMode: return GetBool("fullscreen") ? "Fullscreen" : "Windowed";
+    case kDisplayMode: return GetBool("fullscreen") ? "Borderless fullscreen" : "Windowed";
     case kWindowSize: return kWindowSizes[WindowSizeIndex()].label;
     case kRenderRes: return kRenderLabels[std::clamp(GetInt("resolution_scale"), 1, 3) - 1];
     case kAntiAlias: return kAaLabels[AaIndex()];
     case kPerfOverlay: return kPerfLabels[std::clamp(GetInt("recomp_perf_overlay"), 0, 2)];
-    case kVsync: return GetBool("vsync") ? "On" : "Off";
+    case kFrameRate: return kFrameRateLabels[FrameRateIndex()];
     case kAspect: return GetBool("present_letterbox") ? "Keep 16:9" : "Stretch to window";
     case kFiltering: return kAnisoLabels[AnisoIndex()];
     case kAudioBuffer: return kAudioLabels[AudioIndex()];
@@ -322,7 +332,12 @@ void GameMenu::Change(int row, int dir) {
       SetInt("recomp_perf_overlay", v);
       break;
     }
-    case kVsync: SetBool("vsync", !GetBool("vsync")); break;
+    case kFrameRate: {
+      int i = (FrameRateIndex() + dir + kFrameRateCount) % kFrameRateCount;
+      SetInt("recomp_frame_rate", kFrameRates[i]);
+      status_ = "Frame rate changes on the next launch.";
+      break;
+    }
     case kAspect: SetBool("present_letterbox", !GetBool("present_letterbox")); break;
     case kFiltering: {
       int i = (AnisoIndex() + dir + kAnisoCount) % kAnisoCount;
@@ -450,7 +465,7 @@ void GameMenu::DrawMain(float scale) {
                        : note             ? note
                                           : "Up/Down select, Left/Right change. Saved automatically.";
   p.Text(px + 20 * scale, y + lh * 0.4f, bottom.c_str(), status_.empty() ? kGrey : kGold, 0.75f);
-  p.Text(px + 20 * scale, y + lh * 1.3f, "F1 / Esc: close     F3: performance     F11: fullscreen",
+  p.Text(px + 20 * scale, y + lh * 1.3f, "F1 / Esc: close     F11: fullscreen",
          kGrey, 0.75f);
 }
 

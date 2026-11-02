@@ -49,7 +49,7 @@ set(MADRIDERS_SOURCES
     src/package_setup.cpp
     src/crash_handler.cpp
     src/debug_dump.cpp
-    src/region.cpp src/dlc.cpp src/call_trace.cpp src/video_postproc.cpp src/perf_overlay.cpp
+    src/region.cpp src/dlc.cpp src/call_trace.cpp src/video_postproc.cpp src/perf_overlay.cpp src/frame_rate.cpp
 )
 
 if(WIN32)

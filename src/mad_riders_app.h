@@ -29,6 +29,7 @@
 #include "crash_handler.h"
 #include "debug_dump.h"
 #include "dlc.h"
+#include "frame_rate.h"
 #include "game_keys.h"
 #include "game_menu.h"
 #include "package_setup.h"
@@ -80,6 +81,7 @@ class MadRidersApp : public rex::ReXApp {
     // --recomp_full_game=false keeps the console's default (trial), as Xenia shows it.
     // Decided on every launch (an older build saved license_mask=1 into the config).
     rex::cvar::SetFlagByName("license_mask", rex::cvar::Query<bool>("recomp_full_game") ? "1" : "0");
+    frame_rate::apply();
     REXLOG_INFO("License: {} (license_mask={})",
                 rex::cvar::Query<uint32_t>("license_mask") & 1 ? "full game" : "trial",
                 rex::cvar::Query<uint32_t>("license_mask"));
@@ -106,6 +108,11 @@ class MadRidersApp : public rex::ReXApp {
       rex::cvar::SetFlagByName("log_flush_interval", "1");
       rex::cvar::SetFlagByName("recomp_defaults_version", "2");
       if (!config_path_.empty()) recomp_ui::save_config(config_path_);
+    }
+    // Version 3: the config file lists every menu setting; rewrite it once.
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 3) {
+      rex::cvar::SetFlagByName("recomp_defaults_version", "3");
+      recomp_ui::save_config(config_path_);
     }
   }
 
