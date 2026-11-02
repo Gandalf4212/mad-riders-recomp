@@ -21,6 +21,7 @@
 
 #include <imgui.h>
 
+#include "call_trace.h"
 #include "crash_handler.h"
 #include "debug_dump.h"
 #include "dlc.h"
@@ -115,6 +116,7 @@ class MadRidersApp : public rex::ReXApp {
     rex::ui::RegisterBind("bind_memdump", "F8", "Save a memory snapshot (debug)", [this] {
       auto dir = debug_dump::save_memory(runtime()->memory(),
                                          rex::filesystem::GetExecutableFolder());
+      if (!dir.empty()) call_trace::save(dir);
       rex::FlushLogging();
       REXLOG_INFO("F8 memory snapshot: {}", dir.empty() ? "failed" : dir.string());
     });
@@ -142,6 +144,7 @@ class MadRidersApp : public rex::ReXApp {
   void OnPostSetup() override {
     // Re-assert the crash filter in case SDL or a driver replaced it.
     crash_handler::install(rex::filesystem::GetExecutableFolder());
+    call_trace::set_enabled(rex::cvar::Query<bool>("recomp_call_trace"));
     auto* input_sys = static_cast<rex::input::InputSystem*>(runtime()->input_system());
     if (input_sys && imgui_drawer()) {
       input_sys->SetActiveCallback([this]() {
