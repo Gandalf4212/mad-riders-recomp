@@ -27684,8 +27684,8 @@ loc_82F7BA4C:
 	if (ctx.cr6.lt) goto loc_82F7BAF4;
 loc_82F7BA54:
 	// dcbz r0,r11
-	ea = (ctx.r11.u32) & ~31;
-	memset((void*)REX_RAW_ADDR(ea), 0, 32);
+	ea = (ctx.r11.u32) & ~127;
+	memset((void*)REX_RAW_ADDR(ea), 0, 128);
 	// rlwinm r9,r27,1,0,30
 	ctx.r9.u64 = __builtin_rotateleft64(ctx.r27.u32 | (ctx.r27.u64 << 32), 1) & 0xFFFFFFFE;
 	// dcbt r9,r10

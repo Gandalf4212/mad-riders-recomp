@@ -47,3 +47,10 @@ Helper addresses found then, in case they're needed:
 
 ## Building
 See README.md.
+
+## dcbz clears 128 bytes (grainy video fix)
+ReXGlue v0.10.0 translates `dcbz` as a 32-byte clear. The Xbox 360 has no short cache line:
+`dcbz` clears the whole 128-byte line (Xenia: "Normal dcbz always clears 128 bytes").
+The WMV decoder clears its coefficient buffers with `dcbz` (sub_831C1A98, sub_831C22F8), so
+with a 32-byte clear stale coefficients leaked into later blocks and every video was grainy.
+`tools/patch_dcbz.py generated/default` fixes the 5 sites; run it after every codegen.

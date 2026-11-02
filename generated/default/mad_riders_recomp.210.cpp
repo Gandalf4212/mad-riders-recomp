@@ -32963,8 +32963,8 @@ DEFINE_REX_FUNC(sub_831C1A98) {
 	// li r8,128
 	ctx.r8.s64 = 128;
 	// dcbz r8,r9
-	ea = (ctx.r8.u32 + ctx.r9.u32) & ~31;
-	memset((void*)REX_RAW_ADDR(ea), 0, 32);
+	ea = (ctx.r8.u32 + ctx.r9.u32) & ~127;
+	memset((void*)REX_RAW_ADDR(ea), 0, 128);
 	// lwz r7,0(r28)
 	ctx.r7.u64 = REX_LOAD_U32(ctx.r28.u32 + 0);
 	// rlwinm r5,r7,0,27,28

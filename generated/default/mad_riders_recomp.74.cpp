@@ -30069,8 +30069,8 @@ loc_830B3778:
 	// lwz r7,72(r11)
 	ctx.r7.u64 = REX_LOAD_U32(ctx.r11.u32 + 72);
 	// dcbz r10,r7
-	ea = (ctx.r10.u32 + ctx.r7.u32) & ~31;
-	memset((void*)REX_RAW_ADDR(ea), 0, 32);
+	ea = (ctx.r10.u32 + ctx.r7.u32) & ~127;
+	memset((void*)REX_RAW_ADDR(ea), 0, 128);
 	// addi r10,r10,128
 	ctx.r10.s64 = ctx.r10.s64 + 128;
 	// cmpw cr6,r10,r9

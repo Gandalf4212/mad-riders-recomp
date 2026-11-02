@@ -32850,15 +32850,15 @@ loc_831C2394:
 	// stw r10,92(r1)
 	REX_STORE_U32(ctx.r1.u32 + 92, ctx.r10.u32);
 	// dcbz r0,r11
-	ea = (ctx.r11.u32) & ~31;
-	memset((void*)REX_RAW_ADDR(ea), 0, 32);
+	ea = (ctx.r11.u32) & ~127;
+	memset((void*)REX_RAW_ADDR(ea), 0, 128);
 	// li r10,128
 	ctx.r10.s64 = 128;
 	// lwz r9,1764(r27)
 	ctx.r9.u64 = REX_LOAD_U32(ctx.r27.u32 + 1764);
 	// dcbz r10,r9
-	ea = (ctx.r10.u32 + ctx.r9.u32) & ~31;
-	memset((void*)REX_RAW_ADDR(ea), 0, 32);
+	ea = (ctx.r10.u32 + ctx.r9.u32) & ~127;
+	memset((void*)REX_RAW_ADDR(ea), 0, 128);
 	// lis r11,0
 	ctx.r11.s64 = 0;
 	// li r14,3
