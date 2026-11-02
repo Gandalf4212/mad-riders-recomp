@@ -8,7 +8,9 @@ renderer here: the ReXGlue SDK stays v0.10.0 and its Xenos path stays the defaul
 - `thirdparty/native_x_renderer`: submodule (pinned commit), with DiligentCore inside it.
 - `patches/rexglue-sdk/`: NativeXRenderer's eight SDK changes (draw observer, sync-only command processor,
   queries, gamma, fractional scale, renderer thread signals, RequestRanges, swap count), taken from
-  ElGuslml/rexglue-sdk's `recomp` branch (changes 26-33). They apply cleanly to v0.10.0.
+  ElGuslml/rexglue-sdk's `recomp` branch (changes 26-33), plus change 19 (lazy resolves: the texture cache's
+  `TryLoadTextureDataFromResolveCache`, which NativeXRenderer overrides; its D3D12 part is off by default). They
+  apply cleanly to v0.10.0.
 - CMake: `-DMADRIDERS_NATIVE_X_RENDERER=ON -DREXSDK_DIR=<patched SDK source tree>`.
 - CI: `.github/workflows/build-windows-nxr.yml` (artifact `mad_riders-nxr-win-amd64`).
 

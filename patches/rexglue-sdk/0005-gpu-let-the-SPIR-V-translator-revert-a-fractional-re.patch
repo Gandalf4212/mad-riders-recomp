@@ -1,7 +1,7 @@
 From 93a719e4dd6c7263a16abd043246ef06bc4a7e2b Mon Sep 17 00:00:00 2001
 From: Gustavo Garcia <44309076+ElGuslml@users.noreply.github.com>
 Date: Wed, 14 Oct 2026 10:11:57 -0600
-Subject: [PATCH 5/8] gpu: let the SPIR-V translator revert a fractional
+Subject: [PATCH 5/9] gpu: let the SPIR-V translator revert a fractional
  resolution scale
 
 The translated shaders revert the draw resolution scale in two places: the

@@ -1,7 +1,7 @@
 From 3daa7f550f70b3ea03319375507eae295e7a69ba Mon Sep 17 00:00:00 2001
 From: Gustavo Garcia <44309076+ElGuslml@users.noreply.github.com>
 Date: Tue, 20 Oct 2026 13:53:23 -0600
-Subject: [PATCH 8/8] gpu: count the guest's swaps, and tell a renderer when
+Subject: [PATCH 8/9] gpu: count the guest's swaps, and tell a renderer when
  one executes
 
 VdSwap writes a PM4_XE_SWAP into the ring buffer for every frame the guest

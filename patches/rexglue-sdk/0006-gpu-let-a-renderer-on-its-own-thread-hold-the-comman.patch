@@ -1,7 +1,7 @@
 From b27f8a32833c9ffe057ba25d1ec22adabe989341 Mon Sep 17 00:00:00 2001
 From: Gustavo Garcia <44309076+ElGuslml@users.noreply.github.com>
 Date: Sat, 17 Oct 2026 03:53:13 -0600
-Subject: [PATCH 6/8] gpu: let a renderer on its own thread hold the command
+Subject: [PATCH 6/9] gpu: let a renderer on its own thread hold the command
  processor's signals
 
 A renderer that draws the guest's frames itself (NativeXRenderer) can do its
