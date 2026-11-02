@@ -31,6 +31,9 @@
 #define MADRIDERS_BUILD "local"
 #endif
 
+REXCVAR_DEFINE_BOOL(recomp_full_game, true, "Recomp",
+                    "Run as the purchased game (false = trial, the console default)");
+
 // The default.xex this build was recompiled from (Mad Riders XBLA, 0.0.0.2).
 inline constexpr package_setup::GameInfo kMadRiders{
     "Mad Riders", 0x58411240u, "90349e4daf4812f27faf5c0a9e01edb5ff7d5219", 21446656u};
@@ -68,10 +71,14 @@ class MadRidersApp : public rex::ReXApp {
     }
     // XBLA titles run as the trial unless the license mask says purchased
     // (bit 0 = full game). Unlock unless the user set license_mask themselves.
-    if (rex::cvar::Query<uint32_t>("license_mask") == 0) {
+    // --recomp_full_game=false keeps the console's default (trial), as Xenia shows it.
+    if (rex::cvar::Query<bool>("recomp_full_game") &&
+        rex::cvar::Query<uint32_t>("license_mask") == 0) {
       rex::cvar::SetFlagByName("license_mask", "1");
-      REXLOG_INFO("License: full game (license_mask=1)");
     }
+    REXLOG_INFO("License: {} (license_mask={})",
+                rex::cvar::Query<uint32_t>("license_mask") & 1 ? "full game" : "trial",
+                rex::cvar::Query<uint32_t>("license_mask"));
     // First launch: windowed 1280x720, keyboard on, racing key layout.
     // After this everything comes from mad_riders.toml (edited by the F1 menu).
     if (!rex::cvar::Query<bool>("recomp_defaults_applied")) {
