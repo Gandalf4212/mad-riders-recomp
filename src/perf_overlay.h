@@ -7,6 +7,9 @@
 
 namespace recomp_ui {
 
+// Counts one game frame (called from the game's present hook).
+void perf_on_frame();
+
 class PerfOverlay : public rex::ui::ImGuiDialog {
  public:
   explicit PerfOverlay(rex::ui::ImGuiDrawer* drawer) : ImGuiDialog(drawer) {}

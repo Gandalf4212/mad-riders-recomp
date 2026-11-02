@@ -30,17 +30,27 @@ int64_t now_us() {
 
 }  // namespace
 
-// The game's present (calls VdSwap once per frame).
-extern "C" void __imp__sub_82E6FFE0(PPCContext& __restrict ctx, uint8_t* base);
-REX_HOOK_RAW(sub_82E6FFE0) {
+namespace recomp_ui {
+// Called once per game frame, at the start of the game's present (sub_82E6FFE0, which calls VdSwap).
+void perf_on_frame() {
   int64_t t = now_us();
   int64_t last = g_last_us.exchange(t, std::memory_order_relaxed);
   if (last) {
     uint32_t n = g_frames.fetch_add(1, std::memory_order_relaxed);
     g_frame_ms[n % kHistory].store(float(t - last) / 1000.0f, std::memory_order_relaxed);
   }
+}
+}  // namespace recomp_ui
+
+#ifndef MADRIDERS_NATIVE_X_RENDERER
+// The game's present. With NativeXRenderer built in, its hook file wraps this function instead
+// (src/native_x_renderer_mad_riders.cpp) and calls perf_on_frame().
+extern "C" void __imp__sub_82E6FFE0(PPCContext& __restrict ctx, uint8_t* base);
+REX_HOOK_RAW(sub_82E6FFE0) {
+  recomp_ui::perf_on_frame();
   __imp__sub_82E6FFE0(ctx, base);
 }
+#endif
 
 namespace recomp_ui {
 

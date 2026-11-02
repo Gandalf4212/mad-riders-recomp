@@ -22,9 +22,21 @@ NATIVE_X_RENDERER_HOOK(82E5D518, SetPixelShader)          // +13068
 NATIVE_X_RENDERER_HOOK(82E5D720, SetVertexShader)         // +13072
 NATIVE_X_RENDERER_HOOK(82E66398, SetIndices)              // +12812
 NATIVE_X_RENDERER_HOOK(82E66E70, SetDepthStencilSurface)  // +12832, RB_DEPTH_INFO shadow
-// Frame end: syncs (82E6FB20) and swaps (82E6FFE0 -> VdSwap); called once a frame by the engine.
-// (82E6FFE0 itself is hooked by the FPS overlay, src/perf_overlay.cpp.)
-NATIVE_X_RENDERER_HOOK(82E70748, Present)
+// Frame end. The engine calls Swap (82E6FFE0 -> VdSwap) itself once a frame (from 8275FC00); the library's
+// own Present wrapper (82E70748) never ran in a race (first trace: no frame summaries). Swap is reported as
+// Present, the call that ends a frame. Written out by hand: the FPS overlay counts frames here too.
+#include "perf_overlay.h"
+extern "C" void __imp__sub_82E6FFE0(PPCContext& __restrict ctx, uint8_t* base);
+REX_HOOK_RAW(sub_82E6FFE0) {
+  recomp_ui::perf_on_frame();
+  if (!::native_x_renderer::detail::g_hooks_active) [[likely]] {
+    __imp__sub_82E6FFE0(ctx, base);
+    return;
+  }
+  ::native_x_renderer::detail::Enter(::native_x_renderer::Call::kPresent, ctx, base);
+  __imp__sub_82E6FFE0(ctx, base);
+  ::native_x_renderer::detail::Leave(::native_x_renderer::Call::kPresent, ctx, base);
+}
 
 namespace mad_riders {
 
