@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <memory>
 #include <mutex>
 #include <filesystem>
 #include <string>
@@ -23,6 +24,8 @@
 #include <imgui.h>
 
 #include "call_trace.h"
+#include "config_file.h"
+#include "perf_overlay.h"
 #include "crash_handler.h"
 #include "debug_dump.h"
 #include "dlc.h"
@@ -92,7 +95,7 @@ class MadRidersApp : public rex::ReXApp {
       recomp_ui::GameMenu::ApplyDefaultKeys();
       rex::cvar::SetFlagByName("recomp_defaults_applied", "true");
       if (!config_path_.empty()) {
-        rex::cvar::SaveConfig(config_path_);
+        recomp_ui::save_config(config_path_);
       }
       REXLOG_INFO("First launch: wrote default settings to {}",
                   config_path_.filename().string());
@@ -102,12 +105,12 @@ class MadRidersApp : public rex::ReXApp {
       // Write the log out every second so the lines before a crash aren't lost.
       rex::cvar::SetFlagByName("log_flush_interval", "1");
       rex::cvar::SetFlagByName("recomp_defaults_version", "2");
-      if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
+      if (!config_path_.empty()) recomp_ui::save_config(config_path_);
     }
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
-    (void)drawer;
+    perf_overlay_ = std::make_unique<recomp_ui::PerfOverlay>(drawer);
     rex::ui::RegisterBind("bind_menu", "F1", "Open/close the settings menu",
                           [this] { ToggleMenu(); });
     rex::ui::RegisterBind("bind_menu_alt", "Escape", "Open/close the settings menu",
@@ -121,7 +124,7 @@ class MadRidersApp : public rex::ReXApp {
       bool fs = !window()->IsFullscreen();
       rex::cvar::SetFlagByName("fullscreen", fs ? "true" : "false");
       window()->SetFullscreen(fs);
-      if (!config_path_.empty()) rex::cvar::SaveConfig(config_path_);
+      if (!config_path_.empty()) recomp_ui::save_config(config_path_);
     });
   }
 
@@ -150,6 +153,8 @@ class MadRidersApp : public rex::ReXApp {
       });
     }
   }
+
+  void OnShutdown() override { perf_overlay_.reset(); }
 
  private:
   void TakeSnapshot(const char* why) {
@@ -201,4 +206,5 @@ class MadRidersApp : public rex::ReXApp {
   std::filesystem::path config_path_;
   recomp_ui::GameMenu* menu_ = nullptr;  // owned by the ImGui drawer
   std::string dlc_summary_, dlc_summary_status_;
+  std::unique_ptr<recomp_ui::PerfOverlay> perf_overlay_;
 };

@@ -4,6 +4,8 @@
 // https://github.com/darkuni/afterburner-climax-recomp - see THIRD_PARTY_NOTICES.md
 
 #include "game_menu.h"
+
+#include "config_file.h"
 #include "game_keys.h"
 
 #include <algorithm>
@@ -50,10 +52,12 @@ enum MainRow {
   kDisplayMode,
   kWindowSize,
   kRenderRes,
+  kAntiAlias,
   kVsync,
   kAspect,
   kFiltering,
   kAudioBuffer,
+  kPerfOverlay,
   kKeyboard,
   kEditKeys,
   kImportDlc,
@@ -92,6 +96,18 @@ int AudioIndex() {
   return best;
 }
 
+// swap_post_effect values and labels
+const char* const kAaValues[] = {"none", "fxaa", "fxaa_extreme"};
+const char* const kAaLabels[] = {"Off", "FXAA", "FXAA (strong)"};
+constexpr int kAaCount = 3;
+int AaIndex() {
+  std::string v = rex::cvar::Query<std::string>("swap_post_effect");
+  for (int i = 0; i < kAaCount; i++) if (v == kAaValues[i]) return i;
+  return 0;
+}
+
+const char* const kPerfLabels[] = {"Off", "FPS", "FPS + frame times"};
+
 const char* const kRenderLabels[] = {"1x  1280x720 (original)", "2x  2560x1440", "3x  3840x2160"};
 
 const char* MainLabel(int row) {
@@ -99,6 +115,8 @@ const char* MainLabel(int row) {
     case kDisplayMode: return "Display mode";
     case kWindowSize: return "Window size";
     case kRenderRes: return "Render resolution";
+    case kAntiAlias: return "Anti-aliasing";
+    case kPerfOverlay: return "Performance overlay";
     case kVsync: return "VSync";
     case kAspect: return "Aspect ratio";
     case kFiltering: return "Texture filtering";
@@ -116,7 +134,9 @@ const char* MainNote(int row) {
   switch (row) {
     case kDisplayMode: return "F11 also switches between windowed and fullscreen.";
     case kWindowSize: return "Size of the window in windowed mode. Applies next launch.";
-    case kRenderRes: return "Internal rendering resolution. Applies next launch.";
+    case kRenderRes: return "2x/3x renders bigger and scales down: smoothest edges. Next launch.";
+    case kAntiAlias: return "Smooths jagged edges after rendering; cheap, slightly softer. Next launch.";
+    case kPerfOverlay: return "Game frame rate and frame time in the top-right corner.";
     case kVsync: return "Wait for the monitor refresh. Off can tear.";
     case kAspect: return "Keep 16:9 adds black bars on other window shapes.";
     case kFiltering: return "Sharper textures seen at an angle.";
@@ -150,6 +170,8 @@ std::string MainValue(int row) {
     case kDisplayMode: return GetBool("fullscreen") ? "Fullscreen" : "Windowed";
     case kWindowSize: return kWindowSizes[WindowSizeIndex()].label;
     case kRenderRes: return kRenderLabels[std::clamp(GetInt("resolution_scale"), 1, 3) - 1];
+    case kAntiAlias: return kAaLabels[AaIndex()];
+    case kPerfOverlay: return kPerfLabels[std::clamp(GetInt("recomp_perf_overlay"), 0, 2)];
     case kVsync: return GetBool("vsync") ? "On" : "Off";
     case kAspect: return GetBool("present_letterbox") ? "Keep 16:9" : "Stretch to window";
     case kFiltering: return kAnisoLabels[AnisoIndex()];
@@ -263,7 +285,7 @@ void GameMenu::ApplyDefaultKeys() {
 
 void GameMenu::Save() {
   if (!host_.config_path.empty()) {
-    cvar::SaveConfig(host_.config_path);
+    recomp_ui::save_config(host_.config_path);
   }
 }
 
@@ -287,6 +309,17 @@ void GameMenu::Change(int row, int dir) {
       v = (v + dir + 3) % 3;
       SetInt("resolution_scale", v + 1);
       status_ = "Render resolution changes on the next launch.";
+      break;
+    }
+    case kAntiAlias: {
+      int i = (AaIndex() + dir + kAaCount) % kAaCount;
+      SetStr("swap_post_effect", kAaValues[i]);
+      status_ = "Anti-aliasing changes on the next launch.";
+      break;
+    }
+    case kPerfOverlay: {
+      int v = (std::clamp(GetInt("recomp_perf_overlay"), 0, 2) + dir + 3) % 3;
+      SetInt("recomp_perf_overlay", v);
       break;
     }
     case kVsync: SetBool("vsync", !GetBool("vsync")); break;

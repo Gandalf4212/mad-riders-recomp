@@ -16,7 +16,8 @@ Setup
   https://aka.ms/vs/17/release/vc_redist.x64.exe
 
 Keys
-  F1 / Esc: settings (display mode, window size, render resolution, VSync,
+  F1 / Esc: settings (display mode, window size, render resolution,
+  anti-aliasing, VSync, performance overlay,
   aspect, texture filtering, audio buffer, keyboard on/off, key rebinding).
   F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
 
