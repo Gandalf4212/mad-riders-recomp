@@ -71,6 +71,8 @@ if(MADRIDERS_NATIVE_X_RENDERER)
     if(NOT REXSDK_DIR)
         message(FATAL_ERROR "MADRIDERS_NATIVE_X_RENDERER needs REXSDK_DIR (the patched SDK source tree)")
     endif()
+    # Built from source, the SDK does not pass its ImGui headers on (the menu and overlay include them).
+    target_include_directories(mad_riders PRIVATE "${REXSDK_DIR}/thirdparty/imgui")
     add_subdirectory(thirdparty/native_x_renderer)
     target_sources(mad_riders PRIVATE src/native_x_renderer_mad_riders.cpp)
     target_link_libraries(mad_riders PRIVATE native_x_renderer)
