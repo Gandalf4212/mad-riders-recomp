@@ -17,7 +17,6 @@
 // 82E6E2E0 is BeginVertices (dev, prim, vertexCount, stride) -> vertex pointer: it leaves its fetch constant and
 // DRAW_INDX after the write pointer and saves their end at +13844 (data +13848, dwords +13856); the engine fills
 // the vertices and calls EndVertices (82E6E2D0: [+48] = [+13844]) itself.
-NATIVE_X_RENDERER_HOOK(82E6EBB8, DrawIndexedVertices)
 NATIVE_X_RENDERER_HOOK(82E6E7A0, DrawVertices)
 NATIVE_X_RENDERER_HOOK(82E6E2E0, BeginVertices)
 NATIVE_X_RENDERER_HOOK(82E6E2D0, EndVertices)
@@ -52,6 +51,48 @@ NATIVE_X_RENDERER_HOOK(82E72ED8, NewSegment)              // (dwords + 16) * 4 b
 NATIVE_X_RENDERER_HOOK(82E5DAC0, SetShaderGPRAllocation)  // +11048, defaults 64/64
 NATIVE_X_RENDERER_HOOK(82E6B090, QueryIssue)              // tiles -> [q+148], EVENT_WRITE_ZPD via 82E78BF0
 NATIVE_X_RENDERER_HOOK(82E6B340, QueryGetData)
+// DrawIndexedVertices (82E6EBB8), written out by hand. The library splits a draw of more than 65532 indices into
+// several DRAW_INDX packets inside one call; NativeXRenderer takes one draw packet per call, so it drew only the
+// last piece (the garage's rider, 71322 indices: only the helmet, gloves and boots showed). While NativeXRenderer
+// is on, such a list draw is issued here as several calls of at most 65532 indices, the size the library uses
+// itself: the same packets, one per call. Strips and fans (which would need overlapping pieces) pass through.
+REX_EXTERN(__imp__sub_82E6EBB8);
+namespace {
+constexpr uint32_t kMaxIndicesPerCall = 65532;  // a multiple of 3 (triangles, rects) and 4 (quads)
+bool IsListPrimitive(uint32_t prim) {
+  return prim == 1 || prim == 2 || prim == 4 || prim == 8 || prim == 13;  // point, line, triangle, rect, quad lists
+}
+void DrawIndexedVerticesTracked(PPCContext& ctx, uint8_t* base) {
+  ::native_x_renderer::detail::Enter(::native_x_renderer::Call::kDrawIndexedVertices, ctx, base);
+  __imp__sub_82E6EBB8(ctx, base);
+  ::native_x_renderer::detail::Leave(::native_x_renderer::Call::kDrawIndexedVertices, ctx, base);
+}
+}  // namespace
+REX_HOOK_RAW(sub_82E6EBB8) {
+  if (!::native_x_renderer::detail::g_hooks_active) [[likely]] {
+    __imp__sub_82E6EBB8(ctx, base);
+    return;
+  }
+  const uint32_t prim = ctx.r4.u32, count = ctx.r7.u32;
+  if (count <= kMaxIndicesPerCall || !IsListPrimitive(prim)) {
+    DrawIndexedVerticesTracked(ctx, base);
+    return;
+  }
+  const uint64_t dev = ctx.r3.u64, base_vertex = ctx.r5.u64;
+  uint32_t start = ctx.r6.u32, left = count;
+  while (left) {
+    const uint32_t n = left < kMaxIndicesPerCall ? left : kMaxIndicesPerCall;
+    ctx.r3.u64 = dev;
+    ctx.r4.u64 = prim;
+    ctx.r5.u64 = base_vertex;
+    ctx.r6.u64 = start;
+    ctx.r7.u64 = n;
+    DrawIndexedVerticesTracked(ctx, base);
+    start += n;
+    left -= n;
+  }
+}
+
 // Frame end. The engine calls Swap (82E6FFE0 -> VdSwap) itself once a frame (from 8275FC00); the library's
 // own Present wrapper (82E70748) never ran in a race (first trace: no frame summaries). Swap is reported as
 // Present, the call that ends a frame. Written out by hand: the FPS overlay counts frames here too.

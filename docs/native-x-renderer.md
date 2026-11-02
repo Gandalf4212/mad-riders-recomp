@@ -60,6 +60,16 @@ streams, textures, viewport, shaders, predication confirmed by their setters). B
 - Every Resolve in a race goes through the engine's wrapper (return address 0x82761F30, its callers 0x82762690
   and 0x82762744): `scene_resolve_caller` needs the outer caller (D65) to pick the scene copy.
 
+## First frames (2026-11-02)
+- `--native_x_renderer=true`: menus and races draw as on the Xenos path; 70 -> 100+ FPS at the same spots (1080p,
+  1.5x of 1280x720). First-run hitches were pipeline compilation: the second run loaded the stored 456 pipelines
+  and its worst frame over 600 was 11 ms.
+- The garage's rider showed only helmet, gloves and boots. Its body (decl 0x405abfa0) is one draw of 71322
+  indices: the library splits it into DRAW_INDX packets of 65532 + 5790 indices inside one call (garage verify:
+  VGT_DMA_BASE/SIZE/DRAW_INITIATOR differ for the call executed twice), and NativeXRenderer draws one packet per
+  call, the last piece. Fix: the DrawIndexedVertices hook issues list draws over 65532 indices as several calls
+  while NativeXRenderer is on.
+
 ## Testing (needs the player's PC)
 1. `mad_riders.exe --native_x_renderer_trace=true`: play a race; F9 dumps a frame into the log.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about
