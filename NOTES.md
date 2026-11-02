@@ -26,6 +26,9 @@ No title update (.xexp) was in the package.
 - [ ] First boot: fill in missing kernel imports / stubs
 - [ ] Graphics, audio, input
 
+## Runtime fixes
+- `XGetGameRegion` returns `recomp_game_region` (default 0xFF, North America, as Xenia). ReXGlue's 0xFFFF maps to no region in `sub_823FE840`, so the ESRB notice (`IntroSplashes\mad_riders_esrb.dds`, shown only for `"us"`) never appeared.
+
 ## Overrides applied (`config/overrides.toml`)
 | Address | Why |
 |---|---|
