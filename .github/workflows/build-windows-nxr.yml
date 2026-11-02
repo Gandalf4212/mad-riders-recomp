@@ -132,7 +132,7 @@ jobs:
           # SDK + third-party licenses (BSD-3-Clause, Xenia, SDL3, ...): installed to <prefix>\licenses
           Get-ChildItem rexglue-sdk\thirdparty -Directory | ForEach-Object {
             $lic = Get-ChildItem $_.FullName -File -Filter LICENSE* -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($lic) { Copy-Item $lic.FullName ("dist\licenses\" + $_.Name + "-" + $lic.Name) }
+            if ($lic) { Copy-Item $lic.FullName ("dist\licenses\LICENSE-" + $_.Name + ".txt") }
           }
           Copy-Item thirdparty\native_x_renderer\LICENSE dist\licenses\NativeXRenderer-LICENSE.txt
           Copy-Item thirdparty\native_x_renderer\THIRD_PARTY_NOTICES.md dist\licenses\NativeXRenderer-THIRD_PARTY_NOTICES.md
