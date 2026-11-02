@@ -72,10 +72,8 @@ class MadRidersApp : public rex::ReXApp {
     // XBLA titles run as the trial unless the license mask says purchased
     // (bit 0 = full game). Unlock unless the user set license_mask themselves.
     // --recomp_full_game=false keeps the console's default (trial), as Xenia shows it.
-    if (rex::cvar::Query<bool>("recomp_full_game") &&
-        rex::cvar::Query<uint32_t>("license_mask") == 0) {
-      rex::cvar::SetFlagByName("license_mask", "1");
-    }
+    // Decided on every launch (an older build saved license_mask=1 into the config).
+    rex::cvar::SetFlagByName("license_mask", rex::cvar::Query<bool>("recomp_full_game") ? "1" : "0");
     REXLOG_INFO("License: {} (license_mask={})",
                 rex::cvar::Query<uint32_t>("license_mask") & 1 ? "full game" : "trial",
                 rex::cvar::Query<uint32_t>("license_mask"));
