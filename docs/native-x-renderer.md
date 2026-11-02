@@ -43,3 +43,14 @@ offset; the resource objects' layout.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about
    10 frames later.
 Send the log. The renderer itself (`--native_x_renderer=true`) is not ready.
+
+## Status (2026-11-02)
+- Branch builds on CI (run 41436754028 OK). SDK = stock v0.10.0 + patches/rexglue-sdk (9).
+- First trace/verify logs were empty: frame end was hooked on the library's Present wrapper (82E70748),
+  which never runs. Now Swap (82E6FFE0, hand-written hook that also feeds the FPS overlay) ends frames.
+- Next: player reruns `--native_x_renderer_trace=true` (F9) and `--native_x_renderer_verify=true` (F10);
+  use the observer's "written outside any hooked call" return addresses to map Clear/Resolve/SetRenderTarget etc.
+- Candidates seen so far: Resolve-like 82E71400 (EVENT_WRITE, WAIT_REG_MEM, fetch 0x4800 write; caller 82E72558),
+  clear-like library draws 82E62BC0 / 82E5CE10 / 82E62A68, 82E6DA58 (caller 82E6E0D8), render-target users
+  82E66AE0 / 82E66748 (writes viewport floats +13024..+13044) / 82E63B48, predication/tiling 82E70860 / 82E767C8.
+- Tools: thirdparty/native_x_renderer/tools (ppc_index.py build -> out/ppc_index.pkl; pm4_consts.py; fn_summary.py).
