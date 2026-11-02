@@ -8,4 +8,6 @@
 
 namespace frame_rate {
 void apply();
+// Windows: 1 ms timer resolution (timeBeginPeriod). Called by apply().
+void raise_timer_resolution();
 }

@@ -61,7 +61,7 @@ endif()
 rexglue_setup_target(mad_riders GPU_PLUGINS xenos)
 
 if(WIN32)
-    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp)
+    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp winmm)
 endif()
 
 # CI passes the commit so logs say which build produced them.
