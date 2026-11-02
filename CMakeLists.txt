@@ -64,6 +64,20 @@ if(WIN32)
     target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp winmm)
 endif()
 
+# NativeXRenderer (optional second renderer, off by default; see docs/native-x-renderer.md).
+# Needs the SDK as a source tree (REXSDK_DIR) with patches/rexglue-sdk applied.
+option(MADRIDERS_NATIVE_X_RENDERER "Build NativeXRenderer in as an optional renderer" OFF)
+if(MADRIDERS_NATIVE_X_RENDERER)
+    if(NOT REXSDK_DIR)
+        message(FATAL_ERROR "MADRIDERS_NATIVE_X_RENDERER needs REXSDK_DIR (the patched SDK source tree)")
+    endif()
+    add_subdirectory(thirdparty/native_x_renderer)
+    target_sources(mad_riders PRIVATE src/native_x_renderer_mad_riders.cpp)
+    target_link_libraries(mad_riders PRIVATE native_x_renderer)
+    target_compile_definitions(mad_riders PRIVATE MADRIDERS_NATIVE_X_RENDERER=1)
+    native_x_renderer_copy_runtime(mad_riders)
+endif()
+
 # CI passes the commit so logs say which build produced them.
 set(MADRIDERS_BUILD "" CACHE STRING "Build identifier shown in the log")
 if(MADRIDERS_BUILD)

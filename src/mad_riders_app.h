@@ -34,6 +34,13 @@
 #include "game_menu.h"
 #include "package_setup.h"
 
+#ifdef MADRIDERS_NATIVE_X_RENDERER
+#include <native_x_renderer/native_x_renderer.h>
+namespace mad_riders {
+const native_x_renderer::Profile& NativeXRendererProfile();
+}
+#endif
+
 #ifndef MADRIDERS_BUILD
 #define MADRIDERS_BUILD "local"
 #endif
@@ -150,6 +157,12 @@ class MadRidersApp : public rex::ReXApp {
   void OnPostSetup() override {
     // Re-assert the crash filter in case SDL or a driver replaced it.
     crash_handler::install(rex::filesystem::GetExecutableFolder());
+#ifdef MADRIDERS_NATIVE_X_RENDERER
+    // Off unless --native_x_renderer(_trace/_verify) is set; the Xenos path keeps drawing.
+    native_x_renderer::Initialize(mad_riders::NativeXRendererProfile(),
+                                  runtime() ? runtime()->graphics_system() : nullptr, window(),
+                                  runtime() ? runtime()->cache_root() : std::filesystem::path());
+#endif
     call_trace::set_enabled(rex::cvar::Query<bool>("recomp_call_trace"),
                             [this] { TakeSnapshot("automatic"); });
     auto* input_sys = static_cast<rex::input::InputSystem*>(runtime()->input_system());
