@@ -23,6 +23,7 @@
 
 #include "crash_handler.h"
 #include "debug_dump.h"
+#include "dlc.h"
 #include "game_keys.h"
 #include "game_menu.h"
 #include "package_setup.h"
@@ -126,6 +127,17 @@ class MadRidersApp : public rex::ReXApp {
     });
   }
 
+  // DLC packages put next to the exe (e.g. 58411240\00000002\<file>) are
+  // installed before the game starts, so its content scan sees them.
+  void OnPreLaunchModule() override {
+    dlc::install_found(runtime()->kernel_state(), runtime()->user_data_root(),
+                       rex::filesystem::GetExecutableFolder(), kMadRiders.title_id);
+    REXLOG_INFO("DLC installed: {}", [&] {
+      auto s = dlc::installed_summary(runtime()->kernel_state(), kMadRiders.title_id);
+      return s.empty() ? std::string("none") : s;
+    }());
+  }
+
   // The game must not see keys/buttons while the menu is open.
   void OnPostSetup() override {
     // Re-assert the crash filter in case SDL or a driver replaced it.
@@ -158,9 +170,25 @@ class MadRidersApp : public rex::ReXApp {
       app_context().CallInUIThreadDeferred([this] { window()->RequestClose(); });
     };
     host.on_closed = [this] { menu_ = nullptr; };
+    host.import_dlc = [this] {
+      dlc::start_import(runtime()->kernel_state(), runtime()->user_data_root(),
+                        rex::filesystem::GetExecutableFolder(), kMadRiders.title_id);
+    };
+    host.dlc_status = [] { return dlc::import_status(); };
+    // Re-read the installed list only when an import finished (not every frame).
+    dlc_summary_status_ = "\x01";
+    host.dlc_installed = [this] {
+      auto st = dlc::import_status();
+      if (st != dlc_summary_status_) {
+        dlc_summary_status_ = st;
+        dlc_summary_ = dlc::installed_summary(runtime()->kernel_state(), kMadRiders.title_id);
+      }
+      return dlc_summary_;
+    };
     menu_ = new recomp_ui::GameMenu(imgui_drawer(), std::move(host));
   }
 
   std::filesystem::path config_path_;
   recomp_ui::GameMenu* menu_ = nullptr;  // owned by the ImGui drawer
+  std::string dlc_summary_, dlc_summary_status_;
 };

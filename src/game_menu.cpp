@@ -56,6 +56,7 @@ enum MainRow {
   kAudioBuffer,
   kKeyboard,
   kEditKeys,
+  kImportDlc,
   kCloseMenu,
   kQuit,
   kMainRowCount
@@ -104,6 +105,7 @@ const char* MainLabel(int row) {
     case kAudioBuffer: return "Audio buffer";
     case kKeyboard: return "Keyboard controls";
     case kEditKeys: return "Edit keyboard keys";
+    case kImportDlc: return "Import DLC";
     case kCloseMenu: return "Close menu";
     case kQuit: return "Quit game";
   }
@@ -121,6 +123,7 @@ const char* MainNote(int row) {
     case kAudioBuffer: return "Bigger fixes crackles and dropouts, smaller has less delay. Next launch.";
     case kKeyboard: return "Play with the keyboard as controller 1.";
     case kEditKeys: return "Choose which key presses each controller button.";
+    case kImportDlc: return "Install a DLC package (the file in 58411240\\00000002\\).";
   }
   return nullptr;
 }
@@ -369,6 +372,11 @@ void GameMenu::DrawMain(float scale) {
       p.Text(value_x, y, v.c_str(), kWhite);
     } else if (i == kEditKeys) {
       p.Text(value_x, y, ">", kWhite);
+    } else if (i == kImportDlc) {
+      std::string have = host_.dlc_installed ? host_.dlc_installed() : std::string();
+      std::string v = have.empty() ? "none installed" : have;
+      if (p.TextWidth(v.c_str()) > px + pw - 20 * scale - value_x) v = "installed";
+      p.Text(value_x, y, v.c_str(), kGrey);
     } else if (i == kQuit && i == sel_ && quit_armed_) {
       p.Text(value_x, y, "press again to quit", kGold);
     }
@@ -385,6 +393,9 @@ void GameMenu::DrawMain(float scale) {
           page_ = Page::kKeys;
           keys_sel_ = 0;
           break;
+        case kImportDlc:
+          if (host_.import_dlc) host_.import_dlc();
+          break;
         case kCloseMenu:
           Close();
           break;
@@ -400,6 +411,8 @@ void GameMenu::DrawMain(float scale) {
   }
 
   const char* note = MainNote(sel_);
+  std::string dlc_msg = host_.dlc_status ? host_.dlc_status() : std::string();
+  if (sel_ == kImportDlc && !dlc_msg.empty()) status_ = dlc_msg;
   std::string bottom = !status_.empty() ? status_
                        : note             ? note
                                           : "Up/Down select, Left/Right change. Saved automatically.";

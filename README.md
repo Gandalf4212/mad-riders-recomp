@@ -18,6 +18,11 @@ It checks that `default.xex` is exactly the version this build was made from
 
 F1 / Esc opens the settings menu; F11 toggles fullscreen. Settings are saved in `mad_riders.toml`.
 
+**DLC** (e.g. the Zambia pack): use **Import DLC** in the F1 menu and pick the package file (from
+`58411240\00000002\`), or put the package (or the whole `58411240` folder) next to the exe and it is
+installed at the next launch. It is extracted into ReXGlue's content folder
+(`<user data>\0000000000000000\58411240\00000002\`); restart the game after importing from the menu.
+
 ## Building
 GitHub Actions builds on every push to `main` (`.github/workflows/build-windows.yml`): it builds the stock
 ReXGlue SDK once (cached), then the game from the committed `generated/` code. No game files are needed to build.

@@ -19,6 +19,11 @@ Keys
   F1 / Esc: settings (display mode, window size, render resolution, VSync,
   aspect, texture filtering, audio buffer, keyboard on/off, key rebinding).
   F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
+
+DLC
+  F1 menu > Import DLC, then pick the DLC package (the file in
+  58411240\00000002\). Or copy the package / 58411240 folder next to the exe:
+  it is installed at the next start. Restart the game after a menu import.
   Keyboard: arrows = steer/lean, Z = accelerate, X = brake, Space = boost,
   Enter = start, Backspace = back. A controller works too.
 

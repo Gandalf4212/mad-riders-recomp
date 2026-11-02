@@ -27,6 +27,9 @@ struct MenuHost {
   std::function<void(bool)> set_fullscreen;  // live display-mode switch
   std::function<void()> quit;                // close the game
   std::function<void()> on_closed;           // menu closed itself (deleted)
+  std::function<void()> import_dlc;          // "Import DLC" row: file dialog + install
+  std::function<std::string()> dlc_status;   // progress / result of the last import
+  std::function<std::string()> dlc_installed;  // installed DLC names, comma separated
 };
 
 class GameMenu : public rex::ui::ImGuiDialog {
