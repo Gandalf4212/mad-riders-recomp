@@ -16,9 +16,14 @@ Setup
   https://aka.ms/vs/17/release/vc_redist.x64.exe
 
 Keys
-  F1 / Esc: settings (display mode, window size, render resolution,
-  anti-aliasing, VSync, performance overlay,
+  F1 / Esc: settings (display mode, window size, renderer, render resolution,
+  anti-aliasing, screen sync, frame rate, performance overlay,
   aspect, texture filtering, audio buffer, keyboard on/off, key rebinding).
+
+Renderer
+  NativeX (default) draws the game natively with Vulkan (NativeXRenderer).
+  Xenos emulates the console's GPU (ReXGlue). Switch in F1 > Renderer
+  (next launch), or native_x_renderer = true/false in mad_riders.toml.
   F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
 
 DLC

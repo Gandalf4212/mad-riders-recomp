@@ -61,7 +61,7 @@ endif()
 rexglue_setup_target(mad_riders GPU_PLUGINS xenos)
 
 if(WIN32)
-    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp winmm)
+    target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp winmm pdh)
 endif()
 
 # NativeXRenderer (optional second renderer, off by default; see docs/native-x-renderer.md).

@@ -6,6 +6,16 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <pdh.h>
+#endif
 
 #include <rex/cvar.h>
 #include <rex/hook.h>
@@ -26,6 +36,90 @@ int64_t now_us() {
   return std::chrono::duration_cast<std::chrono::microseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
+}
+
+// ------------------------------------------------------------------ CPU and GPU use
+// Sampled once a second on a thread of its own while the overlay shows them (mode 2).
+// CPU: this process's CPU time over the wall time of all logical processors (Task Manager's "CPU" column).
+// GPU: the busiest GPU engine's utilization for this process, from the "GPU Engine" performance counters
+// (Task Manager's "GPU" column). -1 = not available yet.
+std::atomic<float> g_cpu_percent{-1.0f};
+std::atomic<float> g_gpu_percent{-1.0f};
+std::atomic<int64_t> g_usage_wanted_us{0};  // last time the overlay asked; the sampler sleeps when stale
+std::once_flag g_sampler_started;
+
+#ifdef _WIN32
+uint64_t FileTimeTo100ns(const FILETIME& t) { return (uint64_t(t.dwHighDateTime) << 32) | t.dwLowDateTime; }
+
+void SampleUsage() {
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  const double cpus = double(std::max<DWORD>(si.dwNumberOfProcessors, 1));
+  const std::wstring pid_tag = L"pid_" + std::to_wstring(GetCurrentProcessId()) + L"_";
+
+  PDH_HQUERY query = nullptr;
+  PDH_HCOUNTER counter = nullptr;
+  bool gpu_ok = PdhOpenQueryW(nullptr, 0, &query) == ERROR_SUCCESS &&
+                PdhAddEnglishCounterW(query, L"\\GPU Engine(*)\\Utilization Percentage", 0, &counter) ==
+                    ERROR_SUCCESS;
+  if (gpu_ok) PdhCollectQueryData(query);
+
+  uint64_t last_cpu = 0;
+  int64_t last_wall = 0;
+  std::vector<uint8_t> buffer;
+  for (;;) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    if (now_us() - g_usage_wanted_us.load(std::memory_order_relaxed) > 3'000'000) {
+      last_wall = 0;  // overlay hidden: start over when it shows again
+      continue;
+    }
+    FILETIME created, exited, kernel, user;
+    if (GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) {
+      uint64_t cpu = FileTimeTo100ns(kernel) + FileTimeTo100ns(user);
+      int64_t wall = now_us();
+      if (last_wall) {
+        double busy_us = double(cpu - last_cpu) / 10.0;
+        double pct = 100.0 * busy_us / (double(wall - last_wall) * cpus);
+        g_cpu_percent.store(float(std::clamp(pct, 0.0, 100.0)), std::memory_order_relaxed);
+      }
+      last_cpu = cpu;
+      last_wall = wall;
+    }
+    if (!gpu_ok || PdhCollectQueryData(query) != ERROR_SUCCESS) continue;
+    DWORD size = 0, count = 0;
+    if (PdhGetFormattedCounterArrayW(counter, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, &size, &count, nullptr) !=
+            PDH_MORE_DATA ||
+        !size) {
+      continue;
+    }
+    buffer.resize(size);
+    auto* items = reinterpret_cast<PDH_FMT_COUNTERVALUE_ITEM_W*>(buffer.data());
+    if (PdhGetFormattedCounterArrayW(counter, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, &size, &count, items) !=
+        ERROR_SUCCESS) {
+      continue;
+    }
+    // Instances: pid_<pid>_luid_<adapter>_phys_<n>_eng_<n>_engtype_<3D|Copy|...>. Sum per engine, take the busiest.
+    std::vector<std::pair<std::wstring, double>> engines;
+    for (DWORD i = 0; i < count; ++i) {
+      std::wstring name = items[i].szName ? items[i].szName : L"";
+      if (name.rfind(pid_tag, 0) != 0 || items[i].FmtValue.CStatus != ERROR_SUCCESS) continue;
+      std::wstring engine = name.substr(name.find(L"_luid_"));
+      auto it = std::find_if(engines.begin(), engines.end(), [&](auto& e) { return e.first == engine; });
+      if (it == engines.end()) engines.emplace_back(engine, items[i].FmtValue.doubleValue);
+      else it->second += items[i].FmtValue.doubleValue;
+    }
+    double busiest = 0;
+    for (auto& e : engines) busiest = std::max(busiest, e.second);
+    g_gpu_percent.store(float(std::clamp(busiest, 0.0, 100.0)), std::memory_order_relaxed);
+  }
+}
+#endif
+
+void WantUsage() {
+  g_usage_wanted_us.store(now_us(), std::memory_order_relaxed);
+#ifdef _WIN32
+  std::call_once(g_sampler_started, [] { std::thread(SampleUsage).detach(); });
+#endif
 }
 
 }  // namespace
@@ -92,6 +186,13 @@ void PerfOverlay::OnDraw(ImGuiIO& io) {
   ImGui::TextUnformatted(line);
   if (mode >= 2) {
     std::snprintf(line, sizeof line, "worst %.1f ms", worst);
+    ImGui::TextUnformatted(line);
+    WantUsage();
+    float cpu = g_cpu_percent.load(std::memory_order_relaxed), gpu = g_gpu_percent.load(std::memory_order_relaxed);
+    char cpu_text[16] = "--", gpu_text[16] = "--";
+    if (cpu >= 0) std::snprintf(cpu_text, sizeof cpu_text, "%.0f%%", cpu);
+    if (gpu >= 0) std::snprintf(gpu_text, sizeof gpu_text, "%.0f%%", gpu);
+    std::snprintf(line, sizeof line, "CPU %s  GPU %s", cpu_text, gpu_text);
     ImGui::TextUnformatted(line);
     ImGui::PlotLines("##ft", hist.data(), count, 0, nullptr, 0.0f, 50.0f, ImVec2(220, 50));
   }

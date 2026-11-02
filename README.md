@@ -18,6 +18,10 @@ It checks that `default.xex` is exactly the version this build was made from
 
 F1 / Esc opens the settings menu; F11 toggles fullscreen. Settings are saved in `mad_riders.toml`.
 
+**Renderer**: [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) (native Vulkan) is the default; the
+ReXGlue SDK's Xenos GPU emulation is the alternative (F1 > Renderer, or `native_x_renderer = false`). Details in
+[`docs/native-x-renderer.md`](docs/native-x-renderer.md).
+
 **DLC** (e.g. the Zambia pack): use **Import DLC** in the F1 menu and pick the package file (from
 `58411240\00000002\`), or put the package (or the whole `58411240` folder) next to the exe and it is
 installed at the next launch. It is extracted into ReXGlue's content folder

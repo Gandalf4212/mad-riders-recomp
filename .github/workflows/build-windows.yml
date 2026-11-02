@@ -3,9 +3,11 @@ name: Build Windows
 # Every push to main builds the game (download it from the run's "Artifacts").
 # Publishing a GitHub Release (or pushing a v* tag) also attaches a zip to that release.
 # No game files are used or produced: the exe asks for the player's own package on first start.
+# The ReXGlue SDK is built from source with NativeXRenderer's changes (patches/rexglue-sdk), and
+# NativeXRenderer (thirdparty/native_x_renderer) is built in: the default renderer, Xenos as the alternative.
 on:
   push:
-    branches: [main]
+    branches: [main, native-x-renderer]
     tags: ['v*']
   release:
     types: [published]
@@ -15,7 +17,7 @@ permissions:
   contents: write
 
 env:
-  # Stock ReXGlue SDK release (built here once, then cached).
+  # ReXGlue SDK release the patches apply to (built from source with the game).
   REXGLUE_SDK_REF: v0.10.0
 
 jobs:
@@ -23,8 +25,23 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 300
     steps:
+      # LF everywhere: DiligentCore's patches need an unmodified checkout (CRLF shows as edits).
+      - name: Keep LF line endings
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
       - name: Checkout project
         uses: actions/checkout@v4
+
+      # DiligentCore's submodules (SPIRV-Cross test files) need long paths on Windows.
+      - name: Submodules (long paths)
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git submodule update --init --recursive --depth 1 --jobs 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install LLVM (clang 20+) and Ninja
         shell: pwsh
@@ -44,23 +61,8 @@ jobs:
           cmake --version
           ninja --version
 
-      # ---------- ReXGlue SDK ----------
-      # restore/save are split so the SDK is cached as soon as it builds,
-      # even if the game build after it fails.
-      - name: Restore SDK install cache
-        id: sdk-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: rexglue-sdk-install
-          key: rexglue-sdk-${{ env.REXGLUE_SDK_REF }}-win-amd64-v1
-
-      - name: Keep LF line endings for the SDK checkout
-        if: steps.sdk-cache.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: git config --global core.autocrlf false
-
+      # ---------- ReXGlue SDK (source tree, patched for NativeXRenderer) ----------
       - name: Checkout ReXGlue SDK
-        if: steps.sdk-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
           repository: rexglue/rexglue-sdk
@@ -68,25 +70,13 @@ jobs:
           path: rexglue-sdk
           submodules: recursive
 
-      - name: Build and install SDK
-        if: steps.sdk-cache.outputs.cache-hit != 'true'
+      - name: Apply NativeXRenderer's SDK changes
         shell: pwsh
         working-directory: rexglue-sdk
         run: |
-          cmake --preset win-amd64 `
-            -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ `
-            -DREXGLUE_ENABLE_TRACY=OFF `
-            "-DCMAKE_INSTALL_PREFIX=$env:GITHUB_WORKSPACE/rexglue-sdk-install"
+          git -c user.name=ci -c user.email=ci@local am --3way (Get-ChildItem ..\patches\rexglue-sdk\*.patch | Sort-Object Name | ForEach-Object FullName)
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build out/build/win-amd64 --config Release --target install --parallel
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Save SDK install cache
-        if: steps.sdk-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: rexglue-sdk-install
-          key: ${{ steps.sdk-cache.outputs.cache-primary-key }}
+          git log --oneline -9
 
       # License text for the release zip (also covers the Xenia-derived parts).
       - name: Fetch SDK license
@@ -103,7 +93,7 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           variant: sccache
-          key: mad-riders-win-amd64
+          key: mad-riders-nxr-win-amd64
 
       - name: Configure game
         shell: pwsh
@@ -116,7 +106,8 @@ jobs:
             "-DMADRIDERS_BUILD=$("$env:GITHUB_SHA".Substring(0,7))" `
             -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache `
             -DMADRIDERS_SKIP_CODEGEN=ON `
-            "-DCMAKE_PREFIX_PATH=$env:GITHUB_WORKSPACE/rexglue-sdk-install"
+            -DMADRIDERS_NATIVE_X_RENDERER=ON -DREXGLUE_ENABLE_TRACY=OFF -DREXGLUE_USE_VULKAN=ON `
+            "-DREXSDK_DIR=$env:GITHUB_WORKSPACE/rexglue-sdk"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build game
@@ -134,18 +125,22 @@ jobs:
           if (-not (Test-Path out\mad_riders.pdb)) { Write-Error "mad_riders.pdb was not produced"; exit 1 }
           Copy-Item out\mad_riders.pdb dist\
           Get-ChildItem out -Filter *.dll | Copy-Item -Destination dist\
-          Get-ChildItem "$env:GITHUB_WORKSPACE\rexglue-sdk-install\bin" -Filter *.dll -ErrorAction SilentlyContinue |
+          # SDK built from source: its DLLs (rexruntime, the GPU plugin, SDL...) may sit in subfolders.
+          Get-ChildItem out -Recurse -Filter *.dll | Where-Object { $_.FullName -notmatch 'CMakeFiles' } |
             Where-Object { -not (Test-Path ("dist\" + $_.Name)) } | Copy-Item -Destination dist\
+          if (-not (Test-Path dist\rexruntime.dll)) { Write-Error "rexruntime.dll missing"; Get-ChildItem out -Recurse -Filter *.dll | Select FullName; exit 1 }
           Copy-Item packaging\README.txt dist\
           New-Item -ItemType Directory -Force dist\licenses | Out-Null
           Copy-Item LICENSE dist\licenses\mad-riders-recomp-LICENSE.txt
           Copy-Item THIRD_PARTY_NOTICES.md dist\licenses\
           Copy-Item rexglue-sdk-license\LICENSE dist\licenses\rexglue-sdk-LICENSE.txt
           # SDK + third-party licenses (BSD-3-Clause, Xenia, SDL3, ...): installed to <prefix>\licenses
-          foreach ($d in @("licenses", "share\licenses")) {
-            $src = Join-Path "$env:GITHUB_WORKSPACE\rexglue-sdk-install" $d
-            if (Test-Path $src) { Copy-Item -Recurse -Force "$src\*" dist\licenses\ }
+          Get-ChildItem rexglue-sdk\thirdparty -Directory | ForEach-Object {
+            $lic = Get-ChildItem $_.FullName -File -Filter LICENSE* -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($lic) { Copy-Item $lic.FullName ("dist\licenses\LICENSE-" + $_.Name + ".txt") }
           }
+          Copy-Item thirdparty\native_x_renderer\LICENSE dist\licenses\NativeXRenderer-LICENSE.txt
+          Copy-Item thirdparty\native_x_renderer\THIRD_PARTY_NOTICES.md dist\licenses\NativeXRenderer-THIRD_PARTY_NOTICES.md
           if (-not (Get-ChildItem dist\licenses -Recurse -Filter LICENSE* | Where-Object { $_.Name -notin @('mad-riders-recomp-LICENSE.txt', 'rexglue-sdk-LICENSE.txt') })) {
             Write-Error "SDK license files not found"; exit 1
           }

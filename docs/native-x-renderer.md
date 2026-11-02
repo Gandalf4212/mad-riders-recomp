@@ -1,8 +1,9 @@
 # NativeXRenderer in Mad Riders (work in progress)
 
-Branch `native-x-renderer`. [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) draws the game's
-Direct3D calls on the host (Vulkan, DiligentCore) instead of emulating the Xenos GPU. It is an optional second
-renderer here: the ReXGlue SDK stays v0.10.0 and its Xenos path stays the default and the fallback.
+[NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) draws the game's
+Direct3D calls on the host (Vulkan, DiligentCore) instead of emulating the Xenos GPU. It is the default
+renderer since 2026-11-02 (`native_x_renderer = true`, F1 > Renderer): the ReXGlue SDK stays v0.10.0 (built
+from source with NativeXRenderer's changes), and its Xenos path is the alternative and the fallback.
 
 ## Build
 - `thirdparty/native_x_renderer`: submodule (pinned commit), with DiligentCore inside it.

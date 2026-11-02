@@ -1,4 +1,4 @@
-// Small FPS / frame-time readout in the top-right corner (F1 menu: Performance overlay).
+// Small FPS / frame-time / CPU and GPU use readout in the top-right corner (F1 menu: Performance overlay).
 // Frames are counted at the game's own present call (sub_82E6FFE0, which calls VdSwap),
 // so it shows the game's frame rate, not the window's refresh rate.
 #pragma once

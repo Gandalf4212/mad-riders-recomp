@@ -121,6 +121,14 @@ class MadRidersApp : public rex::ReXApp {
       rex::cvar::SetFlagByName("recomp_defaults_version", "3");
       recomp_ui::save_config(config_path_);
     }
+#ifdef MADRIDERS_NATIVE_X_RENDERER
+    // Version 4: NativeXRenderer becomes the default renderer (F1 menu: Renderer; Xenos stays available).
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 4) {
+      rex::cvar::SetFlagByName("native_x_renderer", "true");
+      rex::cvar::SetFlagByName("recomp_defaults_version", "4");
+      recomp_ui::save_config(config_path_);
+    }
+#endif
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
@@ -158,7 +166,8 @@ class MadRidersApp : public rex::ReXApp {
     // Re-assert the crash filter in case SDL or a driver replaced it.
     crash_handler::install(rex::filesystem::GetExecutableFolder());
 #ifdef MADRIDERS_NATIVE_X_RENDERER
-    // Off unless --native_x_renderer(_trace/_verify) is set; the Xenos path keeps drawing.
+    // native_x_renderer (on by default since defaults version 4) draws with NativeXRenderer; off, or if it
+    // cannot start, the Xenos path draws. _trace/_verify work with either.
     native_x_renderer::Initialize(mad_riders::NativeXRendererProfile(),
                                   runtime() ? runtime()->graphics_system() : nullptr, window(),
                                   runtime() ? runtime()->cache_root() : std::filesystem::path());
