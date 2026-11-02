@@ -10,12 +10,17 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 
 #include <rex/ppc/context.h>
 
 namespace call_trace {
 
-void set_enabled(bool on);
+#include <functional>
+
+// on_ready runs once (on a worker thread) a few seconds after the decoder is
+// first used, so a snapshot can be taken automatically mid-video.
+void set_enabled(bool on, std::function<void()> on_ready = {});
 void record(uint32_t index, uint32_t func, const PPCContext& ctx);
 // Writes call_trace.bin into dir. Returns false if tracing is off or nothing was recorded.
 bool save(const std::filesystem::path& dir);

@@ -2,6 +2,8 @@
 #include "call_trace.h"
 
 #include <array>
+#include <chrono>
+#include <thread>
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -13,6 +15,9 @@
 
 REXCVAR_DEFINE_BOOL(recomp_call_trace, false, "Recomp",
                     "Debug: record recent calls to the video decoder routines (saved with the F8 snapshot)");
+REXCVAR_DEFINE_INT32(recomp_call_trace_delay, 12, "Recomp",
+                     "Debug: seconds after the first decoded video frame to take the automatic snapshot "
+                     "(0 = only on F8)");
 
 namespace call_trace {
 namespace {
@@ -28,6 +33,7 @@ struct Rec {
 };
 
 std::atomic<bool> g_on{false};
+std::atomic<int64_t> g_first_ms{0};
 
 }  // namespace
 }  // namespace call_trace
@@ -59,14 +65,39 @@ uint32_t pack_cr(const PPCContext& c) {
 
 }  // namespace
 
-void set_enabled(bool on) {
+int64_t now_ms() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+void set_enabled(bool on, std::function<void()> on_ready) {
   if (on) store();
   g_on.store(on, std::memory_order_relaxed);
-  if (on) REXLOG_INFO("Call trace on: {} decoder functions wrapped", kTracedCount);
+  if (!on) return;
+  int delay = REXCVAR_GET(recomp_call_trace_delay);
+  REXLOG_INFO("Call trace on: {} decoder functions wrapped; automatic snapshot {}", kTracedCount,
+              delay > 0 ? fmt::format("{} s after the first video frame", delay) : std::string("off"));
+  if (delay > 0 && on_ready) {
+    std::thread([delay, on_ready] {
+      for (;;) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        int64_t first = g_first_ms.load();
+        if (first && now_ms() - first >= int64_t(delay) * 1000) break;
+      }
+      REXLOG_INFO("Call trace: taking the automatic snapshot");
+      on_ready();
+    }).detach();
+  }
 }
 
 void record(uint32_t index, uint32_t func, const PPCContext& ctx) {
   if (!g_on.load(std::memory_order_relaxed)) return;
+  if (!g_first_ms.load(std::memory_order_relaxed)) {
+    int64_t expected = 0;
+    if (g_first_ms.compare_exchange_strong(expected, now_ms()))
+      REXLOG_INFO("Call trace: first decoder call (sub_{:08X})", func);
+  }
   auto& s = store();
   uint64_t n = s.calls[index].fetch_add(1, std::memory_order_relaxed);
   Rec& r = s.recs[index][n % kSlots];
