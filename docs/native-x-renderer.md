@@ -53,9 +53,16 @@ streams, textures, viewport, shaders, predication confirmed by their setters). B
   draws; 205 calls never executed (the BeginVertices taken for DrawVerticesUP, calls whose packets crossed an
   unhooked segment kick); 15 packets written outside hooked calls (clears); mismatches in SQ_PROGRAM_CNTL /
   SQ_INTERPOLATOR_CNTL and the program hashes right after them. Then everything above was hooked.
+- 2026-11-02, all entry points hooked, in a race (frame 2566): **458 of 458 matched draws fully match (100 %)**,
+  0 calls read incompletely, no register/constant/fetch/program mismatches. The 14 unmatched packets are the
+  library's own Clear (9) and Resolve (5) draws. 226 of 684 CPU draw calls had no GPU execution in the window
+  (to look at). No tiling, no memexport, no queries in the frame.
+- Every Resolve in a race goes through the engine's wrapper (return address 0x82761F30, its callers 0x82762690
+  and 0x82762744): `scene_resolve_caller` needs the outer caller (D65) to pick the scene copy.
 
 ## Testing (needs the player's PC)
 1. `mad_riders.exe --native_x_renderer_trace=true`: play a race; F9 dumps a frame into the log.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about
    10 frames later.
-Send the log. The renderer itself (`--native_x_renderer=true`) is not ready.
+Send the log.
+3. `mad_riders.exe --native_x_renderer=true`: the renderer itself (first frames, 2026-11-02).
