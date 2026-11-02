@@ -13,15 +13,45 @@
 
 #include <native_x_renderer/native_x_renderer.h>
 
-// Draws (PM4 scan: DRAW_INDX with an index buffer / auto-index, and the UP draw that writes vertex fetch 0x48BA)
+// Draws (PM4 scan: DRAW_INDX with an index buffer / auto-index). There is no DrawVerticesUP in this library:
+// 82E6E2E0 is BeginVertices (dev, prim, vertexCount, stride) -> vertex pointer: it leaves its fetch constant and
+// DRAW_INDX after the write pointer and saves their end at +13844 (data +13848, dwords +13856); the engine fills
+// the vertices and calls EndVertices (82E6E2D0: [+48] = [+13844]) itself.
 NATIVE_X_RENDERER_HOOK(82E6EBB8, DrawIndexedVertices)
 NATIVE_X_RENDERER_HOOK(82E6E7A0, DrawVertices)
-NATIVE_X_RENDERER_HOOK(82E6E2E0, DrawVerticesUP)
-// Setters (the device field each writes)
+NATIVE_X_RENDERER_HOOK(82E6E2E0, BeginVertices)
+NATIVE_X_RENDERER_HOOK(82E6E2D0, EndVertices)
+// Targets, clears, resolves, predication, viewport, scissor
+NATIVE_X_RENDERER_HOOK(82E66AE0, SetRenderTarget)         // +12816 + 4*index; engine alias 82E67148 (b)
+NATIVE_X_RENDERER_HOOK(82E66E70, SetDepthStencilSurface)  // +12832, RB_DEPTH_INFO shadow
+NATIVE_X_RENDERER_HOOK(82E6E210, Clear)                   // unpacks the D3DCOLOR, calls ClearF per rect
+NATIVE_X_RENDERER_HOOK(82E6E0D8, ClearF)                  // NULL rect -> [surface+36] size; body 82E6DA58
+NATIVE_X_RENDERER_HOOK(82E72558, Resolve)                 // -> 82E71400: RB_COPY_* shadow +10776.., WAIT_REG_MEM
+NATIVE_X_RENDERER_HOOK(82E70860, SetPredication)          // +13084, SET_BIN_MASK
+NATIVE_X_RENDERER_HOOK(82E669B0, SetViewport)             // D3DVIEWPORT9 -> floats at +13024 (82E66748)
+NATIVE_X_RENDERER_HOOK(82E660F8, SetScissorRect)          // +13052..+13064
+// Shaders, declaration, streams, textures, constants
 NATIVE_X_RENDERER_HOOK(82E5D518, SetPixelShader)          // +13068
 NATIVE_X_RENDERER_HOOK(82E5D720, SetVertexShader)         // +13072
+NATIVE_X_RENDERER_HOOK(82E5D938, SetVertexDeclaration)    // stw r4,12240(r3); +16 |= 0x80000
+NATIVE_X_RENDERER_HOOK(82E661F0, SetStreamSource)         // vertex fetch 95 - s at +1912 - 8s; +12836 + 4s
 NATIVE_X_RENDERER_HOOK(82E66398, SetIndices)              // +12812
-NATIVE_X_RENDERER_HOOK(82E66E70, SetDepthStencilSurface)  // +12832, RB_DEPTH_INFO shadow
+NATIVE_X_RENDERER_HOOK(82E69DB8, SetTexture)              // texture+28 -> +1152 + 24i; +12920 + 4i
+NATIVE_X_RENDERER_HOOK(82E5D170, SetVertexShaderConstantF)  // +1920 + 16*start; +0 |= r7
+NATIVE_X_RENDERER_HOOK(82E5D248, SetPixelShaderConstantF)   // +6016 + 16*start; +8 |= r7
+// Resources
+NATIVE_X_RENDERER_HOOK(82E63AB0, VertexBufferLock)        // common lock 82E63740, kind 10
+NATIVE_X_RENDERER_HOOK(82E62998, VertexBufferUnlock)      // b 82E62588([vb+24] & ~3, 0)
+NATIVE_X_RENDERER_HOOK(82E63B00, IndexBufferLock)         // kind 12
+NATIVE_X_RENDERER_HOOK(82E62A58, IndexBufferUnlock)
+NATIVE_X_RENDERER_HOOK(82E67E30, TextureUnlock)           // fetch dwords 1 and 5 & ~0xFFF
+NATIVE_X_RENDERER_HOOK(82E74B28, FlushCpuRange)           // dcbf loop, skips 0x7F100000-0x86FFFFFF
+// Command buffer, GPRs, queries
+NATIVE_X_RENDERER_HOOK(82E73FB8, KickSegment)             // 114 library callers; tail 82E73C78 (fence 82E73528)
+NATIVE_X_RENDERER_HOOK(82E72ED8, NewSegment)              // (dwords + 16) * 4 bytes; +48/+52/+56
+NATIVE_X_RENDERER_HOOK(82E5DAC0, SetShaderGPRAllocation)  // +11048, defaults 64/64
+NATIVE_X_RENDERER_HOOK(82E6B090, QueryIssue)              // tiles -> [q+148], EVENT_WRITE_ZPD via 82E78BF0
+NATIVE_X_RENDERER_HOOK(82E6B340, QueryGetData)
 // Frame end. The engine calls Swap (82E6FFE0 -> VdSwap) itself once a frame (from 8275FC00); the library's
 // own Present wrapper (82E70748) never ran in a race (first trace: no frame summaries). Swap is reported as
 // Present, the call that ends a frame. Written out by hand: the FPS overlay counts frames here too.
@@ -50,13 +80,13 @@ const native_x_renderer::Profile& NativeXRendererProfile() {
     native_x_renderer::DeviceLayout& d = p.device;
     d.vs_constants_dirty = 0;       // the draw's flush: ld +0 -> constants at +1920 (0x4000)
     d.ps_constants_dirty = 8;       // ld +8 -> +6016 (0x4400)
-    d.fetch_constants_dirty = 24;   // unverified (7978)
-    d.fetch_dirty_slot0_bit = 31;   // unverified (7978)
+    d.fetch_constants_dirty = 24;   // the draw's flush: ld +24, low half -> fetch flush 82E79638
+    d.fetch_dirty_slot0_bit = 31;
     d.command_buffer_write = 48;
-    d.fetch_constants = 1152;       // unverified (7978)
+    d.fetch_constants = 1152;       // fetch flush: addi r10,r3,1152
     d.vs_float_constants = 1920;
     d.ps_float_constants = 6016;
-    d.bool_loop_constants = 10112;  // unverified (7978)
+    d.bool_loop_constants = 10112;  // flush: addi r6,r31,10112 with 0x4900
     d.register_groups = {{
         {10368, 0x2000, 16},
         {10444, 0x2100, 21},
@@ -66,21 +96,22 @@ const native_x_renderer::Profile& NativeXRendererProfile() {
         {10680, 0x2300, 38},
         {10832, 0x2380, 8},
     }};
-    d.fence_counter = 10908;        // unverified (7978)
-    d.write_back_block = 10896;     // unverified (7978)
-    d.flags = 10940;                // unverified (7978)
+    d.fence_counter = 11036;        // setters fence the old object with [+11036]; the segment fence writes it
+    d.write_back_block = 11024;     // KickSegment: lwz [+11024], then [wb+0]
+    d.flags = 11068;                // ClearF/KickSegment: tiling 0x20, 0x10, recording 0x80 bytes at +11068
+    d.vertex_declaration = 12240;   // SetVertexDeclaration; read by the program flush 82E7A528
     d.index_buffer = 12812;
     d.render_targets = 12816;
     d.depth_stencil = 12832;
-    d.vertex_buffers = 12836;       // unverified (7978 + 368)
-    d.textures = 12920;             // unverified (7978 + 368)
-    d.viewport = 13024;             // unverified (7978 + 368)
+    d.vertex_buffers = 12836;       // SetStreamSource (addi r11,r4,3209)
+    d.textures = 12920;             // SetTexture (addi r11,r4,3230)
+    d.viewport = 13024;             // floats; read by SetScissorRect and the clear
     d.pixel_shader = 13068;
     d.vertex_shader = 13072;
-    d.predication_mask = 13084;     // unverified (7978 + 368)
-    d.tile_count = 13124;           // unverified (7978 + 368)
+    d.predication_mask = 13084;     // SetPredication
+    d.tile_count = 13124;           // read by Resolve; tiling is not used by the engine
     d.tile_rects = 13128;           // unverified (7978 + 368)
-    native_x_renderer::ObjectLayout& o = p.objects;  // unverified (5426/7978 objects)
+    native_x_renderer::ObjectLayout& o = p.objects;  // ClearF ([surface+36] bits 18/3), SetTexture (+28), streams (+24/+28)
     o.texture_fetch = 28;
     o.surface_info = 24;
     o.surface_color_depth_info = 28;

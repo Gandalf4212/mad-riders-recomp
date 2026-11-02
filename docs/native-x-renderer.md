@@ -20,37 +20,42 @@ XDK 2.0.21076 (newer than every game NativeXRenderer has mapped: 2099, 2417, 542
 
 | Entry point | Address | Evidence |
 |---|---|---|
-| DrawIndexedVertices | `82E6EBB8` | DRAW_INDX with index data; flush reads masks +0/+8 and constants +1920/+6016; reads index buffer +12812 |
+| DrawIndexedVertices | `82E6EBB8` | DRAW_INDX with index data; flush reads masks +0/+8/+16/+24/+32 and constants +1920/+6016, fetch +1152, bool/loop +10112 |
 | DrawVertices | `82E6E7A0` | same flush, auto-index DRAW_INDX |
-| DrawVerticesUP | `82E6E2E0` | writes vertex fetch constant 0x48BA, (count, stride) arguments |
+| BeginVertices | `82E6E2E0` | (prim, vertexCount, stride) -> pointer; packets after the write pointer, end saved at +13844 (the first trace's "DrawVerticesUP data=0x1c stride=0xa8" were this call's arguments) |
+| EndVertices | `82E6E2D0` | `lwz r11,13844(r3); stw r11,48(r3); blr`; called by the engine (`sub_82724780`) |
+| SetRenderTarget | `82E66AE0` | `addi r11,r4,3204` (+12816 + 4i), RB_COLOR_INFO +10372, surface info helper 82E66A50; engine alias `82E67148` |
+| SetDepthStencilSurface | `82E66E70` | +12832, RB_DEPTH_INFO shadow |
+| Clear / ClearF | `82E6E210` / `82E6E0D8` | Clear unpacks the color (`vupkd3d128`) and calls ClearF per rect; ClearF sizes a NULL rect from `[surface+36]`; body 82E6DA58 (IM_LOAD_IMMEDIATE, SQ_PROGRAM_CNTL) |
+| Resolve | `82E72558` | forwards to 82E71400 (RB_COPY_* shadow +10776..+10788, EVENT_WRITE, WAIT_REG_MEM); engine caller `sub_82761D58` |
+| SetPredication | `82E70860` | +13084, SET_BIN_MASK |
+| SetViewport / SetScissorRect | `82E669B0` / `82E660F8` | integer viewport -> floats +13024 (82E66748); scissor +13052..+13064 |
 | SetPixelShader / SetVertexShader | `82E5D518` / `82E5D720` | write +13068 / +13072 |
+| SetVertexDeclaration | `82E5D938` | `stw r4,12240(r3)`, `+16 |= 0x80000` |
+| SetStreamSource | `82E661F0` | vertex fetch 95 - s at +1912 - 8s from `[vb+24]`/`[vb+28]`; +12836 + 4s |
 | SetIndices | `82E66398` | writes +12812 |
-| SetDepthStencilSurface | `82E66E70` | writes +12832 and the RB_DEPTH_INFO shadow |
-| Swap | `82E6FFE0` | calls VdSwap (hooked by the FPS overlay, so not by NativeXRenderer) |
-| Present | `82E70748` | engine call once a frame; sync `82E6FB20`, then Swap |
+| SetTexture | `82E69DB8` | texture+28..+48 -> +1152 + 24i; +12920 + 4i |
+| Set{Vertex,Pixel}ShaderConstantF | `82E5D170` / `82E5D248` | +1920/+6016 + 16*start; mask from r7 |
+| VB Lock/Unlock, IB Lock/Unlock | `82E63AB0`/`82E62998`, `82E63B00`/`82E62A58` | common lock 82E63740 kinds 10/12; common unlock 82E62588 |
+| TextureUnlock, FlushCpuRange | `82E67E30`, `82E74B28` | fetch dwords 1/5 & ~0xFFF; dcbf loop skipping 0x7F100000-0x86FFFFFF |
+| KickSegment / NewSegment | `82E73FB8` / `82E72ED8` | 114 library callers, tail 82E73C78 with the segment fence 82E73528 (EVENT_WRITE_SHD); NewSegment sets +48/+52/+56 |
+| SetShaderGPRAllocation | `82E5DAC0` | +11048, defaults 64/64 |
+| QueryIssue / QueryGetData | `82E6B090` / `82E6B340` | [q+148] tiles, EVENT_WRITE_ZPD helper 82E78BF0 |
+| Swap | `82E6FFE0` | calls VdSwap; reported as Present (frame end), also feeds the FPS overlay |
 
-Device layout: XDK 7978's up to the register shadow (confirmed in the draw's flush), the current-object block
-7978's + 368 (index buffer, targets, depth, shaders confirmed by their setters; the rest unverified).
+Device layout: XDK 7978's up to the register shadow; fence counter +11036, write-back block +11024, flag bytes
++11068 (7978's + 128); vertex declaration +12240; the current-object block 7978's + 368 (index buffer, targets,
+streams, textures, viewport, shaders, predication confirmed by their setters). BeginTiling/EndTiling exist
+(82E76A30/82E77198 likely) but the engine never calls them.
 
-## Still to map
-SetRenderTarget, Clear/ClearF, Resolve, BeginTiling/EndTiling, SetPredication, SetViewport/SetScissorRect,
-SetVertexDeclaration, SetStreamSource, SetTexture, the constant setters, buffer Lock/Unlock, TextureUnlock,
-KickSegment/NewSegment, SetShaderGPRAllocation, queries, BeginVertices/EndVertices; the vertex declaration
-offset; the resource objects' layout.
+## Verify results
+- 2026-11-02, first run with Swap as the frame end (only draws and shaders hooked): 96.8 % of 588 matched
+  draws; 205 calls never executed (the BeginVertices taken for DrawVerticesUP, calls whose packets crossed an
+  unhooked segment kick); 15 packets written outside hooked calls (clears); mismatches in SQ_PROGRAM_CNTL /
+  SQ_INTERPOLATOR_CNTL and the program hashes right after them. Then everything above was hooked.
 
 ## Testing (needs the player's PC)
 1. `mad_riders.exe --native_x_renderer_trace=true`: play a race; F9 dumps a frame into the log.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about
    10 frames later.
 Send the log. The renderer itself (`--native_x_renderer=true`) is not ready.
-
-## Status (2026-11-02)
-- Branch builds on CI (run 41436754028 OK). SDK = stock v0.10.0 + patches/rexglue-sdk (9).
-- First trace/verify logs were empty: frame end was hooked on the library's Present wrapper (82E70748),
-  which never runs. Now Swap (82E6FFE0, hand-written hook that also feeds the FPS overlay) ends frames.
-- Next: player reruns `--native_x_renderer_trace=true` (F9) and `--native_x_renderer_verify=true` (F10);
-  use the observer's "written outside any hooked call" return addresses to map Clear/Resolve/SetRenderTarget etc.
-- Candidates seen so far: Resolve-like 82E71400 (EVENT_WRITE, WAIT_REG_MEM, fetch 0x4800 write; caller 82E72558),
-  clear-like library draws 82E62BC0 / 82E5CE10 / 82E62A68, 82E6DA58 (caller 82E6E0D8), render-target users
-  82E66AE0 / 82E66748 (writes viewport floats +13024..+13044) / 82E63B48, predication/tiling 82E70860 / 82E767C8.
-- Tools: thirdparty/native_x_renderer/tools (ppc_index.py build -> out/ppc_index.pkl; pm4_consts.py; fn_summary.py).
