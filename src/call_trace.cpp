@@ -49,7 +49,7 @@ struct Store {
 };
 
 Store& store() {
-  static Store* s = new Store();  // ~37 MB, only allocated when tracing is used
+  static Store* s = new Store();  // tens of MB, only allocated when tracing is used
   return *s;
 }
 
@@ -100,7 +100,10 @@ void record(uint32_t index, uint32_t func, const PPCContext& ctx) {
   }
   auto& s = store();
   uint64_t n = s.calls[index].fetch_add(1, std::memory_order_relaxed);
-  Rec& r = s.recs[index][n % kSlots];
+  // Keep the first kSlots calls, then sample 1 in 64 so hot routines stay cheap.
+  if (n >= kSlots && (n & 63) != 0) return;
+  uint64_t slot = n < kSlots ? n : (n >> 6) % kSlots;
+  Rec& r = s.recs[index][slot];
   r.func = 0;  // marks the slot as being written
   r.seq = uint32_t(n);
   r.total = n + 1;
@@ -122,7 +125,7 @@ bool save(const std::filesystem::path& dir) {
   std::vector<const Rec*> out;
   for (uint32_t i = 0; i < kTracedCount; i++) {
     uint64_t n = s.calls[i].load();
-    for (uint64_t k = 0; k < std::min<uint64_t>(n, kSlots); k++) {
+    for (uint64_t k = 0; k < (uint64_t)kSlots; k++) {
       const Rec& r = s.recs[i][k];
       if (r.func) out.push_back(&r);
     }
@@ -140,6 +143,19 @@ bool save(const std::filesystem::path& dir) {
   uint32_t count = uint32_t(out.size());
   std::fwrite(&count, 4, 1, f);
   for (const Rec* r : out) std::fwrite(r, sizeof(Rec), 1, f);
+  // Trailer: call counts of every traced function that ran.
+  std::vector<std::pair<uint32_t, uint64_t>> counts;
+  for (uint32_t i = 0; i < kTracedCount; i++) {
+    uint64_t n = s.calls[i].load();
+    if (n) counts.push_back({kTracedAddr[i], n});
+  }
+  std::fwrite("CNT1", 1, 4, f);
+  uint32_t nc = uint32_t(counts.size());
+  std::fwrite(&nc, 4, 1, f);
+  for (auto& c : counts) {
+    std::fwrite(&c.first, 4, 1, f);
+    std::fwrite(&c.second, 8, 1, f);
+  }
   std::fclose(f);
   REXLOG_INFO("Call trace: {} records written to {}", count, p.string());
   return true;

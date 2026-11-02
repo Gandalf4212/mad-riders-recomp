@@ -1,11 +1,12 @@
-// Debug: records the registers of recent calls to selected recompiled functions
+// Debug: records the registers of sampled calls to selected recompiled functions
 // (the video decoder's motion compensation and other untested decoder routines),
 // so they can be replayed offline against a reference interpreter together with
 // an F8 memory snapshot. Off unless --recomp_call_trace=true.
 //
 // File format (call_trace.bin, little-endian): "MRT1", u32 record count, then per
 // record: u32 func, u32 seq (call number), u64 calls_total, u64 gpr[32], u32 cr
-// (8 nibbles, cr0 high), u32 xer_ca, u8 v[128][16] (host order as stored in PPCContext).
+// (8 nibbles, cr0 high), u32 xer_ca, u8 v[128][16] (host order as stored in PPCContext);
+// then "CNT1", u32 n, n * (u32 func, u64 calls).
 #pragma once
 
 #include <cstdint>
