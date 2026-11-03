@@ -18,7 +18,8 @@ Setup
 Keys
   F1 / Esc: settings (display mode, window size, renderer, render resolution,
   anti-aliasing, screen sync, frame rate, performance overlay,
-  aspect, texture filtering, audio buffer, keyboard on/off, key rebinding).
+  aspect, texture filtering, audio buffer, keyboard on/off, log file,
+  key rebinding).
   F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
   Keyboard: arrows = steer/lean, Z = accelerate, X = brake, Space = boost,
   Enter = start, Backspace = back. A controller works too.
@@ -29,6 +30,11 @@ Renderer
   (next launch), or native_x_renderer = true/false in mad_riders.toml.
   NativeX compiles shaders the first time they are needed (short hitches
   on a first visit to a track); they are kept for later runs.
+
+Bug reports
+  Logging is off by default. Turn on F1 > Log file (or start with
+  --recomp_log=true), reproduce the problem and send logs\mad_riders_NNN.log.
+  A crash writes mad_riders_crash.txt and mad_riders_crash.dmp next to the exe.
 
 DLC
   F1 menu > Import DLC, then pick the DLC package (the file in

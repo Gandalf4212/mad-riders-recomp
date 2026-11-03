@@ -44,6 +44,8 @@ const native_x_renderer::Profile& NativeXRendererProfile();
 #define MADRIDERS_BUILD "local"
 #endif
 
+REXCVAR_DEFINE_BOOL(recomp_log, false, "Recomp",
+                    "Write a log file in logs\\ (for bug reports); off by default");
 REXCVAR_DEFINE_BOOL(recomp_full_game, true, "Recomp",
                     "Run as the purchased game (false = trial, the console default)");
 
@@ -66,6 +68,7 @@ class MadRidersApp : public rex::ReXApp {
   // file dialog). --game_data_root still overrides it.
   void OnConfigurePaths(rex::PathConfig& paths) override {
     const auto exe_dir = rex::filesystem::GetExecutableFolder();
+    ApplyLogSwitch(paths.config_path);
     crash_handler::install(exe_dir);
     if (paths.game_data_root.empty()) {
       paths.game_data_root = exe_dir / "assets";
@@ -183,6 +186,22 @@ class MadRidersApp : public rex::ReXApp {
   void OnShutdown() override { perf_overlay_.reset(); }
 
  private:
+  // recomp_log (off by default; F1 menu, mad_riders.toml, --recomp_log=true): the log file in logs\.
+  // The SDK sets its logging up right after this callback, from the config file, and always opens a
+  // file: with logging off, every category is set to "off" (nothing is formatted or written) and the
+  // file goes to the temp folder instead of a new logs\mad_riders_NNN.log each launch.
+  // config_file.h leaves these two out of mad_riders.toml for the rest of the run.
+  static void ApplyLogSwitch(const std::filesystem::path& config_path) {
+    if (std::filesystem::exists(config_path)) rex::cvar::LoadConfig(config_path);
+    if (rex::cvar::Query<bool>("recomp_log") || !rex::cvar::Query<std::string>("log_file").empty()) return;
+    std::error_code ec;
+    auto temp = std::filesystem::temp_directory_path(ec);
+    if (ec) return;
+    rex::cvar::SetFlagByName("log_level", "off");
+    rex::cvar::SetFlagByName("log_file", (temp / "mad_riders_log_off.log").string());
+    recomp_ui::g_log_forced_off = true;
+  }
+
   void TakeSnapshot(const char* why) {
     static std::mutex m;
     std::lock_guard<std::mutex> lock(m);

@@ -62,6 +62,7 @@ enum MainRow {
   kAudioBuffer,
   kPerfOverlay,
   kKeyboard,
+  kLogFile,
   kEditKeys,
   kImportDlc,
   kCloseMenu,
@@ -165,6 +166,7 @@ const char* MainLabel(int row) {
     case kFiltering: return "Texture filtering";
     case kAudioBuffer: return "Audio buffer";
     case kKeyboard: return "Keyboard controls";
+    case kLogFile: return "Log file";
     case kEditKeys: return "Edit keyboard keys";
     case kImportDlc: return "Import DLC";
     case kCloseMenu: return "Close menu";
@@ -195,6 +197,7 @@ const char* MainNote(int row) {
     case kFiltering: return "Sharper textures seen at an angle.";
     case kAudioBuffer: return "Bigger fixes crackles and dropouts, smaller has less delay. Next launch.";
     case kKeyboard: return "Play with the keyboard as controller 1.";
+    case kLogFile: return "Writes logs\\mad_riders_NNN.log for bug reports. Off is a bit faster. Next launch.";
     case kEditKeys: return "Choose which key presses each controller button.";
     case kImportDlc: return "Install a DLC package (the file in 58411240\\00000002\\).";
   }
@@ -234,11 +237,12 @@ std::string MainValue(int row) {
     case kFiltering: return kAnisoLabels[AnisoIndex()];
     case kAudioBuffer: return kAudioLabels[AudioIndex()];
     case kKeyboard: return GetBool("mnk_mode") ? "On" : "Off";
+    case kLogFile: return GetBool("recomp_log") ? "On" : "Off";
   }
   return {};
 }
 
-bool IsOptionRow(int row) { return row <= kKeyboard; }
+bool IsOptionRow(int row) { return row <= kLogFile; }
 
 // ------------------------------------------------------------------ keys page
 using game_keys::KeyBind;
@@ -418,6 +422,10 @@ void GameMenu::Change(int row, int dir) {
       break;
     }
     case kKeyboard: SetBool("mnk_mode", !GetBool("mnk_mode")); break;
+    case kLogFile:
+      SetBool("recomp_log", !GetBool("recomp_log"));
+      status_ = "Logging changes on the next launch.";
+      break;
     default: return;
   }
   Save();

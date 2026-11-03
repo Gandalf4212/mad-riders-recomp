@@ -20,6 +20,8 @@ known issues.
   (fast without tearing, V-Sync, or immediate for G-Sync/FreeSync); anisotropic texture filtering.
 - **Performance overlay**: FPS, frame time and renderer; CPU and GPU use with a frame-time graph.
 - **Controls**: controller, or keyboard as controller 1 with rebindable keys.
+- **Logging** off by default (F1 > Log file, `recomp_log = true` or `--recomp_log=true` writes `logs\mad_riders_NNN.log`
+  for bug reports); a crash always writes `mad_riders_crash.txt`.
 - **DLC**: import add-on packages from the menu (or drop them next to the exe).
 - **Setup from your own package**: the exe finds or asks for your XBLA package and extracts it; the full game is
   unlocked (`recomp_full_game = false` for the trial).

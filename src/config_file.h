@@ -70,12 +70,19 @@ inline const ConfigSection kConfigSections[] = {
      {
          {"mnk_mode", "true = keyboard plays as controller 1 (keys under Edit keyboard keys)"},
      }},
+    {"Logging",
+     {
+         {"recomp_log", "true = write a log file in logs\\ (for bug reports), false = no log (default)"},
+     }},
     {"Game",
      {
          {"recomp_full_game", "true = purchased game, false = trial (shows the ESRB notice)"},
          {"recomp_game_region", "255 = North America, 767 = Europe, 511 = Japan"},
      }},
 };
+
+// True when this run turned logging off at start-up (log_level/log_file then hold values the game set).
+inline bool g_log_forced_off = false;
 
 inline std::string toml_value(const rex::cvar::FlagEntry& e, const std::string& v) {
   return e.type == rex::cvar::FlagType::String ? "\"" + v + "\"" : v;
@@ -85,6 +92,11 @@ inline void save_config(const std::filesystem::path& path) {
   if (path.empty()) return;
   // Derived from recomp_frame_rate at start-up; not worth listing.
   std::set<std::string> written = {"vsync", "video_mode_refresh_rate"};
+  // Set at start-up while logging is off (MadRidersApp::ApplyLogSwitch); not the player's settings.
+  if (g_log_forced_off) {
+    written.insert("log_level");
+    written.insert("log_file");
+  }
   std::string out = std::string(kConfigBanner) + "\n";
   auto& registry = rex::cvar::GetRegistry();
   auto find = [&](const std::string& name) -> const rex::cvar::FlagEntry* {

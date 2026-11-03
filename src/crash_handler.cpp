@@ -120,8 +120,15 @@ LONG WINAPI Filter(EXCEPTION_POINTERS* ep) {
              (unsigned long long)er->ExceptionInformation[1]);
     head += buf;
   }
-  REXLOG_CRITICAL("{}", head);
-  REXLOG_CRITICAL("  at {}", Describe(process, addr));
+  // The report goes to the log (when logging is on) and to mad_riders_crash.txt next to the exe (always:
+  // logging is off by default).
+  std::string report;
+  auto emit = [&report](const std::string& line) {
+    REXLOG_CRITICAL("{}", line);
+    report += line + "\n";
+  };
+  emit(head);
+  emit("  at " + Describe(process, addr));
 
   // Stack trace from the faulting context.
   CONTEXT ctx = *ep->ContextRecord;
@@ -135,18 +142,25 @@ LONG WINAPI Filter(EXCEPTION_POINTERS* ep) {
                      nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr) ||
         !frame.AddrPC.Offset)
       break;
-    REXLOG_CRITICAL("  #{:02} {}", i, Describe(process, frame.AddrPC.Offset));
+    snprintf(buf, sizeof buf, "  #%02d ", i);
+    emit(buf + Describe(process, frame.AddrPC.Offset));
   }
-  REXLOG_CRITICAL("  registers: rcx={:016x} rdx={:016x} r8={:016x} r9={:016x} rsp={:016x}",
-                  ctx.Rcx, ctx.Rdx, ctx.R8, ctx.R9, ep->ContextRecord->Rsp);
+  snprintf(buf, sizeof buf, "  registers: rcx=%016llx rdx=%016llx r8=%016llx r9=%016llx rsp=%016llx",
+           (unsigned long long)ctx.Rcx, (unsigned long long)ctx.Rdx, (unsigned long long)ctx.R8,
+           (unsigned long long)ctx.R9, (unsigned long long)ep->ContextRecord->Rsp);
+  emit(buf);
 
   std::string dump;
   WriteDump(ep, dump);
-  if (!dump.empty()) REXLOG_CRITICAL("Crash dump written to {}", dump);
+  if (!dump.empty()) emit("Crash dump written to " + dump);
   rex::FlushLogging();
+  if (FILE* f = _wfopen((g_exe_dir / "mad_riders_crash.txt").wstring().c_str(), L"wb")) {
+    fwrite(report.data(), 1, report.size(), f);
+    fclose(f);
+  }
 
   std::string msg = "Mad Riders crashed (" + std::string(ExceptionName(er->ExceptionCode)) +
-                    ").\n\nThe details are in the newest mad_riders_*.log file";
+                    ").\n\nThe details are in mad_riders_crash.txt";
   if (!dump.empty()) msg += " and " + dump;
   msg += " next to the exe.";
   MessageBoxA(nullptr, msg.c_str(), "Mad Riders", MB_OK | MB_ICONERROR);
