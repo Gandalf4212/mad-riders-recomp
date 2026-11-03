@@ -71,6 +71,13 @@ streams, textures, viewport, shaders, predication confirmed by their setters). B
   call, the last piece. Fix: the DrawIndexedVertices hook issues list draws over 65532 indices as several calls
   while NativeXRenderer is on.
 
+## First-run hitches (2026-11-02)
+New players reported bad hitching. The scene is drawn into 1280x672 targets, not the 1280x720 output, so
+NativeXRenderer's D101 rule (offscreen passes wait for their pipelines instead of being skipped) applied to every
+scene draw: each new pipeline stalled the frame on a first run. `patches/native_x_renderer/0001` adds
+`Profile::scene_width/scene_height`; the profile sets 1280x672, so scene draws are skipped for the frame or two
+their pipeline takes, as in other games, and only the true offscreen passes wait.
+
 ## Testing (needs the player's PC)
 1. `mad_riders.exe --native_x_renderer_trace=true`: play a race; F9 dumps a frame into the log.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about

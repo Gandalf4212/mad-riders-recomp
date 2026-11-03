@@ -55,6 +55,7 @@ committed `generated/` code and the `thirdparty/native_x_renderer` submodule. No
 Locally (Windows, VS 2022 with Clang 20+, CMake 3.25+, Ninja), with the patched SDK source tree:
 ```
 git submodule update --init --recursive
+git -C thirdparty/native_x_renderer apply ../../patches/native_x_renderer/0001-profile-scene-size-for-D101.patch
 cmake -S . -B out -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ ^
   -DMADRIDERS_NATIVE_X_RENDERER=ON -DREXGLUE_USE_VULKAN=ON -DREXSDK_DIR=<patched rexglue-sdk>
 cmake --build out
@@ -78,6 +79,7 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `src/perf_overlay.*`, `src/frame_rate.*` | Performance overlay; frame rate options |
 | `src/dlc.*` | DLC import and install |
 | `patches/rexglue-sdk/` | NativeXRenderer's changes to the SDK (from ElGuslml/rexglue-sdk) |
+| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits) |
 | `thirdparty/native_x_renderer` | NativeXRenderer (submodule) |
 
 ## Credits

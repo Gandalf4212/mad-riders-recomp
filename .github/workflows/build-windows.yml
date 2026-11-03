@@ -43,6 +43,17 @@ jobs:
           git submodule update --init --recursive --depth 1 --jobs 4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Game-side changes to NativeXRenderer, carried as patches until they are upstream.
+      - name: Apply NativeXRenderer patches
+        shell: pwsh
+        working-directory: thirdparty/native_x_renderer
+        run: |
+          foreach ($p in (Get-ChildItem ..\..\patches\native_x_renderer\*.patch | Sort-Object Name)) {
+            git apply --whitespace=nowarn $p.FullName
+            if ($LASTEXITCODE -ne 0) { Write-Error "patch failed: $($p.Name)"; exit 1 }
+          }
+          git status --short
+
       - name: Install LLVM (clang 20+) and Ninja
         shell: pwsh
         run: |

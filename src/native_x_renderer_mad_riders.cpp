@@ -118,6 +118,11 @@ const native_x_renderer::Profile& NativeXRendererProfile() {
     p.xdk_version = "2.0.21076";
     p.output_width = 1280;
     p.output_height = 720;
+    // The scene, its post-processing and its depth are drawn into 1280x672 targets (resolved at 1280x672), the 2D layer
+    // and the front buffer at 1280x720. Without this every scene draw counted as offscreen and waited for its pipeline
+    // (D101): hitches of up to seconds on a first run (patches/native_x_renderer/0001).
+    p.scene_width = 1280;
+    p.scene_height = 672;
     native_x_renderer::DeviceLayout& d = p.device;
     d.vs_constants_dirty = 0;       // the draw's flush: ld +0 -> constants at +1920 (0x4000)
     d.ps_constants_dirty = 8;       // ld +8 -> +6016 (0x4400)

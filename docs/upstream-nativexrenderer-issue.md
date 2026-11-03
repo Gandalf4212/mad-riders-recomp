@@ -79,6 +79,10 @@ tile count/rects `+13124`/`+13128`. Resource objects as 5426/7978.
 BeginTiling/EndTiling exist (likely `82E76A30`/`82E77198`) but the engine never calls them.
 
 **Other notes:**
+- **The scene is drawn at 1280x672, not the output's 1280x720.** So D101 took every scene draw for an offscreen one
+  and made it wait for its pipeline: players with an empty pipeline storage saw long hitches. Mad Riders carries a
+  small patch adding `Profile::scene_width/scene_height` (draws into a target of that size count as scene draws);
+  something like it upstream would be welcome (`patches/native_x_renderer/0001-profile-scene-size-for-D101.patch`).
 - Every Resolve goes through one engine wrapper (return address `0x82761F30`, outer caller `0x82762690` for all of
   them), so `scene_resolve_caller` cannot pick the scene copy by return address in this game.
 - The evidence for each entry is in Mad Riders' `docs/native-x-renderer.md`, which I can share.
