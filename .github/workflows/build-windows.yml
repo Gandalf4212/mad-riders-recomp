@@ -8,9 +8,9 @@ name: Build Windows
 on:
   push:
     branches: [main, native-x-renderer]
+    # Publishing a release with a new v* tag creates the tag, which runs this once and attaches the zip.
+    # (No separate `release` trigger: it built every release twice.)
     tags: ['v*']
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
