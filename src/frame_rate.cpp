@@ -42,8 +42,9 @@ void apply() {
   if (fps != 0 && fps != 30 && fps != 60 && fps != 120) fps = 30;
   if (fps == 0) {
     rex::cvar::SetFlagByName("vsync", "false");
-    // The game also paces itself from the reported refresh rate: report the maximum.
-    rex::cvar::SetFlagByName("video_mode_refresh_rate", "240");
+    // The game also paces itself from the reported refresh rate (a frame per two vblanks): report 1000 Hz, the
+    // vblank rate with vsync off (the SDK's limit was 240 Hz, a 120 FPS ceiling: patches/rexglue-sdk/0010).
+    rex::cvar::SetFlagByName("video_mode_refresh_rate", "1000");
     REXLOG_INFO("Frame rate: uncapped (guest vblank pacing off)");
   } else {
     rex::cvar::SetFlagByName("vsync", "true");

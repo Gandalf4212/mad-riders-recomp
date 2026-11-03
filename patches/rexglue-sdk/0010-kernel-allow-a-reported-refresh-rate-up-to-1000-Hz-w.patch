@@ -1,0 +1,41 @@
+From a1ff1064bb9b2eda7d9da88e5b5cea7a4e1d4eee Mon Sep 17 00:00:00 2001
+From: Mad Riders recomp <noreply@anthropic.com>
+Date: Mon, 2 Nov 2026 23:20:45 -0500
+Subject: [PATCH] kernel: allow a reported refresh rate up to 1000 Hz (was 240)
+
+Games that pace themselves from VdQueryVideoMode's refresh rate (Mad Riders: two vblanks per frame) were held
+at 120 FPS with vsync off.
+---
+ src/kernel/xboxkrnl/xboxkrnl_video.cpp | 2 +-
+ src/ui/window.cpp                      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/kernel/xboxkrnl/xboxkrnl_video.cpp b/src/kernel/xboxkrnl/xboxkrnl_video.cpp
+index cf558b7..7869696 100644
+--- a/src/kernel/xboxkrnl/xboxkrnl_video.cpp
++++ b/src/kernel/xboxkrnl/xboxkrnl_video.cpp
+@@ -74,7 +74,7 @@ uint32_t GetConfiguredVideoModeHeight() {
+ }
+ 
+ float GetConfiguredVideoModeRefreshRate() {
+-  double refresh_rate_hz = std::clamp(REXCVAR_GET(video_mode_refresh_rate), 24.0, 240.0);
++  double refresh_rate_hz = std::clamp(REXCVAR_GET(video_mode_refresh_rate), 24.0, 1000.0);
+   return float(refresh_rate_hz);
+ }
+ 
+diff --git a/src/ui/window.cpp b/src/ui/window.cpp
+index b4e045f..769fc15 100644
+--- a/src/ui/window.cpp
++++ b/src/ui/window.cpp
+@@ -62,7 +62,7 @@ REXCVAR_DEFINE_STRING(resolution, "", "Display",
+ 
+ REXCVAR_DEFINE_DOUBLE(video_mode_refresh_rate, 60.0, "Display",
+                       "Guest video mode refresh rate in Hz")
+-    .range(24.0, 240.0)
++    .range(24.0, 1000.0)
+     .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
+ 
+ namespace rex {
+-- 
+2.43.0
+
