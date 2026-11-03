@@ -46,7 +46,7 @@ inline const ConfigSection kConfigSections[] = {
      }},
     {"Frame rate and performance",
      {
-         {"recomp_frame_rate", "30 (original), 60, 120, or 0 = uncapped"},
+         {"recomp_frame_rate", "30 (original), 60 or 120"},
          {"recomp_perf_overlay", "0 = off, 1 = FPS, 2 = FPS + frame-time graph + CPU/GPU use"},
      }},
     {"Graphics",

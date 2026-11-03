@@ -120,10 +120,10 @@ int AaIndex() {
   return 0;
 }
 
-// recomp_frame_rate values and labels (0 = uncapped)
-const int kFrameRates[] = {30, 60, 120, 0};
-const char* const kFrameRateLabels[] = {"30 FPS (original)", "60 FPS", "120 FPS", "Uncapped"};
-constexpr int kFrameRateCount = 4;
+// recomp_frame_rate values and labels (the game caps itself at 120)
+const int kFrameRates[] = {30, 60, 120};
+const char* const kFrameRateLabels[] = {"30 FPS (original)", "60 FPS", "120 FPS"};
+constexpr int kFrameRateCount = 3;
 int FrameRateIndex() {
   int v = GetInt("recomp_frame_rate");
   for (int i = 0; i < kFrameRateCount; i++) if (kFrameRates[i] == v) return i;

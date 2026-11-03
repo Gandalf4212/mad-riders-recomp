@@ -18,7 +18,7 @@
 #include <rex/logging.h>
 
 REXCVAR_DEFINE_INT32(recomp_frame_rate, 30, "Recomp",
-                     "Frame rate: 30 (original), 60, 120, or 0 for uncapped. Applies at start-up");
+                     "Frame rate: 30 (original), 60 or 120. Applies at start-up");
 
 namespace frame_rate {
 
@@ -39,18 +39,13 @@ void raise_timer_resolution() {
 void apply() {
   raise_timer_resolution();
   int fps = REXCVAR_GET(recomp_frame_rate);
-  if (fps != 0 && fps != 30 && fps != 60 && fps != 120) fps = 30;
-  if (fps == 0) {
-    rex::cvar::SetFlagByName("vsync", "false");
-    // The game also paces itself from the reported refresh rate (a frame per two vblanks): report 1000 Hz, the
-    // vblank rate with vsync off (the SDK's limit was 240 Hz, a 120 FPS ceiling: patches/rexglue-sdk/0010).
-    rex::cvar::SetFlagByName("video_mode_refresh_rate", "1000");
-    REXLOG_INFO("Frame rate: uncapped (guest vblank pacing off)");
-  } else {
-    rex::cvar::SetFlagByName("vsync", "true");
-    rex::cvar::SetFlagByName("video_mode_refresh_rate", std::to_string(fps * 2));
-    REXLOG_INFO("Frame rate: {} FPS (guest refresh {} Hz)", fps, fps * 2);
-  }
+  // 0 was "uncapped" in earlier builds: the game caps itself at 120 anyway, so it becomes 120.
+  if (fps == 0) fps = 120;
+  if (fps != 30 && fps != 60 && fps != 120) fps = 30;
+  if (fps != REXCVAR_GET(recomp_frame_rate)) rex::cvar::SetFlagByName("recomp_frame_rate", std::to_string(fps));
+  rex::cvar::SetFlagByName("vsync", "true");
+  rex::cvar::SetFlagByName("video_mode_refresh_rate", std::to_string(fps * 2));
+  REXLOG_INFO("Frame rate: {} FPS (guest refresh {} Hz)", fps, fps * 2);
 }
 
 }  // namespace frame_rate

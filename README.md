@@ -13,7 +13,7 @@ known issues.
 - **Two renderers.** [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) (default) draws the game's
   Direct3D calls natively with Vulkan: about 3x the frame rate of GPU emulation at the same resolution. The ReXGlue
   SDK's Xenos GPU emulation is the alternative and the fallback (F1 > Renderer, next launch).
-- **Frame rate**: 30 (original), 60, 120 or uncapped.
+- **Frame rate**: 30 (original), 60 or 120 (the game's own limit).
 - **Resolution and anti-aliasing**: NativeX renders at your screen's size by default, or at 1x-3x of the original
   1280x720 (above the screen's size it scales down: smoother edges), with SMAA or FXAA on the scene (not the HUD).
   Xenos: 1x-3x plus optional FXAA.

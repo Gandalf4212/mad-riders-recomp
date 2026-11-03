@@ -24,7 +24,7 @@ No title update (.xexp) was in the package.
 - [x] First-run setup: finds or asks for the package, extracts it, checks xex SHA-1
 - [x] F1/Esc settings menu, key rebinding (adapted from afterburner-climax-recomp)
 - [x] Boots and plays: menus, races, videos, audio, controller and keyboard
-- [x] DLC import; frame rate options (30/60/120/uncapped); performance overlay with CPU/GPU use
+- [x] DLC import; frame rate options (30/60/120; the game caps itself at 120); performance overlay with CPU/GPU use
 - [x] NativeXRenderer as the default renderer (`docs/native-x-renderer.md`); Xenos emulation as the alternative
 
 ## Runtime fixes
