@@ -80,6 +80,14 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `patches/rexglue-sdk/` | NativeXRenderer's changes to the SDK (from ElGuslml/rexglue-sdk) |
 | `thirdparty/native_x_renderer` | NativeXRenderer (submodule) |
 
+## Credits
+- **Gandalf4212**: project lead, testing on real hardware, design decisions.
+- **Claude** (Anthropic's AI model, through Claude Code): the recompilation setup, the runtime fixes, the
+  NativeXRenderer integration, the menu, overlay and tools. Its commits carry a `Co-Authored-By: Claude` line.
+- **ElGuslml**: [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) and its ReXGlue SDK changes.
+- **The ReXGlue SDK** authors (built on Xenia), and darkuni's afterburner-climax-recomp, whose settings menu this
+  project's menu was adapted from.
+
 ## Disclaimer
 Unofficial fan project, not affiliated with or endorsed by Ubisoft, Techland or Microsoft. This repository and its
 builds contain no game data; `generated/` and the exe contain code machine-translated from the game's executable.
