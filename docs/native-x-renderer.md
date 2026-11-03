@@ -78,6 +78,15 @@ scene draw: each new pipeline stalled the frame on a first run. `patches/native_
 `Profile::scene_width/scene_height`; the profile sets 1280x672, so scene draws are skipped for the frame or two
 their pipeline takes, as in other games, and only the true offscreen passes wait.
 
+## Antialiasing (2026-11-02)
+NativeXRenderer applies SMAA/FXAA to the copy of the finished scene, found by Resolve's return address and the
+output's size (D41/D65). Here every resolve comes through the engine's wrapper (0x82761F30, outer 0x82762690), and
+the finished scene is a 1280x672 copy (texture 0x40451CE0 in the garage: the raw scene at the first resolve, the
+post-processed scene at the last) drawn as a quad into the cleared 1280x720 frame before the HUD; the frame is then
+resolved to the front buffer (outer caller 0x82762744). The patch adds `Profile::scene_resolve_before_output`: the
+newest scene-size color copy from the scene caller is antialiased when the first draw into an output-size target
+comes. The menu's Anti-aliasing row sets `native_x_renderer_antialiasing` (SMAA default) under NativeX.
+
 ## Testing (needs the player's PC)
 1. `mad_riders.exe --native_x_renderer_trace=true`: play a race; F9 dumps a frame into the log.
 2. `mad_riders.exe --native_x_renderer_verify=true`: F10 verifies a frame; the report lands in the log about

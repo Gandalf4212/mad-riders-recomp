@@ -82,7 +82,10 @@ BeginTiling/EndTiling exist (likely `82E76A30`/`82E77198`) but the engine never 
 - **The scene is drawn at 1280x672, not the output's 1280x720.** So D101 took every scene draw for an offscreen one
   and made it wait for its pipeline: players with an empty pipeline storage saw long hitches. Mad Riders carries a
   small patch adding `Profile::scene_width/scene_height` (draws into a target of that size count as scene draws);
-  something like it upstream would be welcome (`patches/native_x_renderer/0001-profile-scene-size-for-D101.patch`).
+  something like it upstream would be welcome (`patches/native_x_renderer/0001-scene-size-and-scene-antialiasing.patch`).
+- **Antialiasing:** the scene's final copy is 1280x672 and is drawn into the 1280x720 frame before the HUD, and every
+  resolve has the same return addresses. The same patch adds `Profile::scene_resolve_before_output`: the newest
+  scene-size copy from `scene_resolve_caller` is antialiased at the first draw into an output-size target.
 - Every Resolve goes through one engine wrapper (return address `0x82761F30`, outer caller `0x82762690` for all of
   them), so `scene_resolve_caller` cannot pick the scene copy by return address in this game.
 - The evidence for each entry is in Mad Riders' `docs/native-x-renderer.md`, which I can share.

@@ -14,8 +14,9 @@ known issues.
   Direct3D calls natively with Vulkan: about 3x the frame rate of GPU emulation at the same resolution. The ReXGlue
   SDK's Xenos GPU emulation is the alternative and the fallback (F1 > Renderer, next launch).
 - **Frame rate**: 30 (original), 60, 120 or uncapped.
-- **Resolution**: NativeX renders at your screen's size by default, or at 1x-3x of the original 1280x720 (above the
-  screen's size it scales down: smoother edges). Xenos: 1x-3x plus optional FXAA.
+- **Resolution and anti-aliasing**: NativeX renders at your screen's size by default, or at 1x-3x of the original
+  1280x720 (above the screen's size it scales down: smoother edges), with SMAA or FXAA on the scene (not the HUD).
+  Xenos: 1x-3x plus optional FXAA.
 - **Display**: borderless fullscreen (F11) or a window of 1280x720-2560x1440; keep 16:9 or stretch; screen sync
   (fast without tearing, V-Sync, or immediate for G-Sync/FreeSync); anisotropic texture filtering.
 - **Performance overlay**: FPS, frame time and renderer; CPU and GPU use with a frame-time graph.
@@ -55,7 +56,7 @@ committed `generated/` code and the `thirdparty/native_x_renderer` submodule. No
 Locally (Windows, VS 2022 with Clang 20+, CMake 3.25+, Ninja), with the patched SDK source tree:
 ```
 git submodule update --init --recursive
-git -C thirdparty/native_x_renderer apply ../../patches/native_x_renderer/0001-profile-scene-size-for-D101.patch
+git -C thirdparty/native_x_renderer apply ../../patches/native_x_renderer/0001-scene-size-and-scene-antialiasing.patch
 cmake -S . -B out -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ ^
   -DMADRIDERS_NATIVE_X_RENDERER=ON -DREXGLUE_USE_VULKAN=ON -DREXSDK_DIR=<patched rexglue-sdk>
 cmake --build out
@@ -79,7 +80,7 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `src/perf_overlay.*`, `src/frame_rate.*` | Performance overlay; frame rate options |
 | `src/dlc.*` | DLC import and install |
 | `patches/rexglue-sdk/` | NativeXRenderer's changes to the SDK (from ElGuslml/rexglue-sdk) |
-| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits) |
+| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits, antialiasing of a scene copy drawn into the frame) |
 | `thirdparty/native_x_renderer` | NativeXRenderer (submodule) |
 
 ## Credits

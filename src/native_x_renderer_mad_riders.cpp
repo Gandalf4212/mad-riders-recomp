@@ -123,6 +123,11 @@ const native_x_renderer::Profile& NativeXRendererProfile() {
     // (D101): hitches of up to seconds on a first run (patches/native_x_renderer/0001).
     p.scene_width = 1280;
     p.scene_height = 672;
+    // Antialiasing (SMAA/FXAA) on the finished scene: every resolve goes through the engine's wrapper (Resolve's return
+    // address 0x82761F30), and the scene's last copy (1280x672, after the post-processing) is drawn into the 1280x720
+    // frame before the HUD; the patch antialiases the newest scene-size copy at that first draw into the frame.
+    p.scene_resolve_caller = 0x82761F30;
+    p.scene_resolve_before_output = true;
     native_x_renderer::DeviceLayout& d = p.device;
     d.vs_constants_dirty = 0;       // the draw's flush: ld +0 -> constants at +1920 (0x4000)
     d.ps_constants_dirty = 8;       // ld +8 -> +6016 (0x4400)
