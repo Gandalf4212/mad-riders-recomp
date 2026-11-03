@@ -23,8 +23,9 @@ No title update (.xexp) was in the package.
 - [x] Generated code committed; GitHub Actions Windows build
 - [x] First-run setup: finds or asks for the package, extracts it, checks xex SHA-1
 - [x] F1/Esc settings menu, key rebinding (adapted from afterburner-climax-recomp)
-- [ ] First boot: fill in missing kernel imports / stubs
-- [ ] Graphics, audio, input
+- [x] Boots and plays: menus, races, videos, audio, controller and keyboard
+- [x] DLC import; frame rate options (30/60/120/uncapped); performance overlay with CPU/GPU use
+- [x] NativeXRenderer as the default renderer (`docs/native-x-renderer.md`); Xenos emulation as the alternative
 
 ## Runtime fixes
 - `XGetGameRegion` returns `recomp_game_region` (default 0xFF, North America, as Xenia). ReXGlue's 0xFFFF maps to no region in `sub_823FE840`, so the ESRB notice (`IntroSplashes\mad_riders_esrb.dds`, shown only for `"us"`) never appeared.

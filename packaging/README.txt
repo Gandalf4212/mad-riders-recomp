@@ -19,21 +19,21 @@ Keys
   F1 / Esc: settings (display mode, window size, renderer, render resolution,
   anti-aliasing, screen sync, frame rate, performance overlay,
   aspect, texture filtering, audio buffer, keyboard on/off, key rebinding).
+  F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
+  Keyboard: arrows = steer/lean, Z = accelerate, X = brake, Space = boost,
+  Enter = start, Backspace = back. A controller works too.
 
 Renderer
   NativeX (default) draws the game natively with Vulkan (NativeXRenderer).
   Xenos emulates the console's GPU (ReXGlue). Switch in F1 > Renderer
   (next launch), or native_x_renderer = true/false in mad_riders.toml.
-  F11: fullscreen. Settings are saved in mad_riders.toml next to the exe.
+  NativeX compiles shaders the first time they are needed (short hitches
+  on a first visit to a track); they are kept for later runs.
 
 DLC
   F1 menu > Import DLC, then pick the DLC package (the file in
   58411240\00000002\). Or copy the package / 58411240 folder next to the exe:
   it is installed at the next start. Restart the game after a menu import.
-  Keyboard: arrows = steer/lean, Z = accelerate, X = brake, Space = boost,
-  Enter = start, Backspace = back. A controller works too.
-
-This is early work: the game may not start or may crash.
 
 Unofficial fan project, not affiliated with or endorsed by Ubisoft, Techland
 or Microsoft. The exe contains code machine-translated from the game's

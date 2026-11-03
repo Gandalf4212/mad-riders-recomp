@@ -23,7 +23,6 @@
 
 #include <imgui.h>
 
-#include "call_trace.h"
 #include "config_file.h"
 #include "perf_overlay.h"
 #include "crash_handler.h"
@@ -172,8 +171,6 @@ class MadRidersApp : public rex::ReXApp {
                                   runtime() ? runtime()->graphics_system() : nullptr, window(),
                                   runtime() ? runtime()->cache_root() : std::filesystem::path());
 #endif
-    call_trace::set_enabled(rex::cvar::Query<bool>("recomp_call_trace"),
-                            [this] { TakeSnapshot("automatic"); });
     auto* input_sys = static_cast<rex::input::InputSystem*>(runtime()->input_system());
     if (input_sys && imgui_drawer()) {
       input_sys->SetActiveCallback([this]() {
@@ -191,7 +188,6 @@ class MadRidersApp : public rex::ReXApp {
     std::lock_guard<std::mutex> lock(m);
     REXLOG_INFO("{} memory snapshot: starting", why);
     auto dir = debug_dump::save_memory(runtime()->memory(), rex::filesystem::GetExecutableFolder());
-    if (!dir.empty()) call_trace::save(dir);
     REXLOG_INFO("{} memory snapshot: {}", why, dir.empty() ? "failed" : dir.string());
     rex::FlushLogging();
   }

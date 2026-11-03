@@ -23,6 +23,10 @@
 
 #include <imgui.h>
 
+#ifdef MADRIDERS_NATIVE_X_RENDERER
+#include <native_x_renderer/native_x_renderer.h>
+#endif
+
 REXCVAR_DEFINE_INT32(recomp_perf_overlay, 0, "Recomp",
                      "Performance overlay: 0 off, 1 FPS, 2 FPS + frame time graph");
 
@@ -174,8 +178,13 @@ void PerfOverlay::OnDraw(ImGuiIO& io) {
   float since = float(now_us() - g_last_us.load()) / 1000.0f;
   if (since > 250.0f) avg = since;
 
+#ifdef MADRIDERS_NATIVE_X_RENDERER
+  const char* renderer = native_x_renderer::Renders() ? "NativeX" : "Xenos";
+#else
+  const char* renderer = "Xenos";
+#endif
   char line[96];
-  std::snprintf(line, sizeof line, "%.0f FPS  %.1f ms", avg > 0 ? 1000.0f / avg : 0.0f, avg);
+  std::snprintf(line, sizeof line, "%.0f FPS   %.1f ms   %s", avg > 0 ? 1000.0f / avg : 0.0f, avg, renderer);
 
   const float pad = 10.0f;
   ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - pad, pad), ImGuiCond_Always, ImVec2(1, 0));
@@ -186,16 +195,15 @@ void PerfOverlay::OnDraw(ImGuiIO& io) {
                    ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs);
   ImGui::TextUnformatted(line);
   if (mode >= 2) {
-    std::snprintf(line, sizeof line, "worst %.1f ms", worst);
-    ImGui::TextUnformatted(line);
     WantUsage();
     float cpu = g_cpu_percent.load(std::memory_order_relaxed), gpu = g_gpu_percent.load(std::memory_order_relaxed);
     char cpu_text[16] = "--", gpu_text[16] = "--";
     if (cpu >= 0) std::snprintf(cpu_text, sizeof cpu_text, "%.0f%%", cpu);
     if (gpu >= 0) std::snprintf(gpu_text, sizeof gpu_text, "%.0f%%", gpu);
-    std::snprintf(line, sizeof line, "CPU %s  GPU %s", cpu_text, gpu_text);
+    std::snprintf(line, sizeof line, "CPU %s   GPU %s", cpu_text, gpu_text);
     ImGui::TextUnformatted(line);
-    ImGui::PlotLines("##ft", hist.data(), count, 0, nullptr, 0.0f, 50.0f, ImVec2(220, 50));
+    std::snprintf(line, sizeof line, "worst %.1f ms", worst);
+    ImGui::PlotLines("##ft", hist.data(), count, 0, line, 0.0f, 50.0f, ImVec2(220, 50));
   }
   ImGui::End();
 }
