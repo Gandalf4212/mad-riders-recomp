@@ -23,9 +23,7 @@
 
 #include <imgui.h>
 
-#ifdef MADRIDERS_NATIVE_X_RENDERER
 #include <native_x_renderer/native_x_renderer.h>
-#endif
 
 REXCVAR_DEFINE_INT32(recomp_perf_overlay, 0, "Recomp",
                      "Performance overlay: 0 off, 1 FPS, 2 FPS + frame time graph");
@@ -141,15 +139,8 @@ void perf_on_frame() {
 }
 }  // namespace recomp_ui
 
-#ifndef MADRIDERS_NATIVE_X_RENDERER
-// The game's present. With NativeXRenderer built in, its hook file wraps this function instead
-// (src/native_x_renderer_mad_riders.cpp) and calls perf_on_frame().
-extern "C" void __imp__sub_82E6FFE0(PPCContext& __restrict ctx, uint8_t* base);
-REX_HOOK_RAW(sub_82E6FFE0) {
-  recomp_ui::perf_on_frame();
-  __imp__sub_82E6FFE0(ctx, base);
-}
-#endif
+// The game's present is wrapped by NativeXRenderer's hook file (src/native_x_renderer_mad_riders.cpp),
+// which calls perf_on_frame().
 
 namespace recomp_ui {
 
@@ -178,11 +169,7 @@ void PerfOverlay::OnDraw(ImGuiIO& io) {
   float since = float(now_us() - g_last_us.load()) / 1000.0f;
   if (since > 250.0f) avg = since;
 
-#ifdef MADRIDERS_NATIVE_X_RENDERER
-  const char* renderer = native_x_renderer::Renders() ? "NativeX" : "Xenos";
-#else
-  const char* renderer = "Xenos";
-#endif
+  const char* renderer = native_x_renderer::Renders() ? "NativeX" : "fallback";
   char line[96];
   std::snprintf(line, sizeof line, "%.0f FPS   %.1f ms   %s", avg > 0 ? 1000.0f / avg : 0.0f, avg, renderer);
 

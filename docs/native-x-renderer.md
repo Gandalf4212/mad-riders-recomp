@@ -2,8 +2,10 @@
 
 [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) draws the game's
 Direct3D calls on the host (Vulkan, DiligentCore) instead of emulating the Xenos GPU. It is the default
-renderer since 2026-11-02 (`native_x_renderer = true`, F1 > Renderer): the ReXGlue SDK stays v0.10.0 (built
-from source with NativeXRenderer's changes), and its Xenos path is the alternative and the fallback.
+renderer since 2026-11-02 and the only one since 0.8.2 (the F1 > Renderer choice and the Xenos settings are gone;
+`native_x_renderer` is forced on): the ReXGlue SDK stays v0.10.0 (built from source with NativeXRenderer's
+changes). Its Xenos plugin still runs the command processor NativeXRenderer observes; its host rendering is off,
+and draws only if NativeXRenderer cannot start (last resort, logged).
 
 ## Build
 - `thirdparty/native_x_renderer`: submodule (pinned commit), with DiligentCore inside it.
@@ -12,7 +14,7 @@ from source with NativeXRenderer's changes), and its Xenos path is the alternati
   ElGuslml/rexglue-sdk's `recomp` branch (changes 26-33), plus change 19 (lazy resolves: the texture cache's
   `TryLoadTextureDataFromResolveCache`, which NativeXRenderer overrides; its D3D12 part is off by default). They
   apply cleanly to v0.10.0.
-- CMake: `-DMADRIDERS_NATIVE_X_RENDERER=ON -DREXSDK_DIR=<patched SDK source tree>`.
+- CMake: `-DREXSDK_DIR=<patched SDK source tree>` (required).
 - CI: `.github/workflows/build-windows-nxr.yml` (artifact `mad_riders-nxr-win-amd64`).
 
 ## The executable
@@ -93,3 +95,21 @@ comes. The menu's Anti-aliasing row sets `native_x_renderer_antialiasing` (SMAA 
    10 frames later.
 Send the log.
 3. `mad_riders.exe --native_x_renderer=true`: the renderer itself (first frames, 2026-11-02).
+
+## Shader cache (`shaders.cache`, 0.8.2)
+`patches/native_x_renderer/0002` (NativeXRenderer D115) replaces the per-title pipeline storage and the separate
+`.vkcache` in the user's cache folder with one indexed file, `shaders.cache` next to the exe
+(`native_x_renderer::SetShaderCache`, `src/mad_riders_app.h`). It holds the guest microcode, the SPIR-V of every
+translation, the pipeline records and the driver's pipeline cache. Before the game's first command is drawn the
+renderer prepares all of it while the game waits, and NativeXRenderer's `ShaderCacheScreen` shows the progress. How it works and how to add it to another recomp: `thirdparty/native_x_renderer/docs/shader-cache.md` (in the patch).
+
+On the first launch (no `shaders.cache`, or other game data: names and sizes of the `.rpack` files) the game hands
+over every shader it ships. `src/shader_scan.cpp` reads them from the `.rpack` packs: section 0x30 holds the XDK
+shader objects (`0x102A1101` vertex, `0x102A1100` pixel) with the microcode cut out, section 0x31 the microcode in
+the same order on 32-byte boundaries. 19 packs give 885 unique shaders (495 pixel, 390 vertex) in about 2 s;
+every pixel shader in a Xenia dump of a play session (204) is among them byte for byte. Their vertex shaders
+differ from the shipped ones only in the vertex fetches, which the game's D3D patches for each vertex layout, so
+vertex translations (and pipelines) still come from play. Pixel shaders are translated for each interpolator set
+the shipped vertex shaders write.
+
+The old caches (`<user folder>\cache\native_x_renderer` and the Xenos `cache\shaders`) are deleted at start.

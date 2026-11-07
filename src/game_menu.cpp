@@ -52,7 +52,6 @@ void SetStr(const char* n, const std::string& v) { cvar::SetFlagByName(n, v); }
 enum MainRow {
   kDisplayMode,
   kWindowSize,
-  kRenderer,
   kRenderRes,
   kAntiAlias,
   kScreenSync,
@@ -110,15 +109,6 @@ int NxrAaIndex() {
   return 2;  // smaa, NativeXRenderer's default
 }
 
-// swap_post_effect values and labels
-const char* const kAaValues[] = {"none", "fxaa", "fxaa_extreme"};
-const char* const kAaLabels[] = {"Off", "FXAA", "FXAA (strong)"};
-constexpr int kAaCount = 3;
-int AaIndex() {
-  std::string v = rex::cvar::Query<std::string>("swap_post_effect");
-  for (int i = 0; i < kAaCount; i++) if (v == kAaValues[i]) return i;
-  return 0;
-}
 
 // recomp_frame_rate values and labels (the game caps itself at 120)
 const int kFrameRates[] = {30, 60, 120};
@@ -132,15 +122,7 @@ int FrameRateIndex() {
 
 const char* const kPerfLabels[] = {"Off", "FPS", "FPS, frame times, CPU/GPU"};
 
-const char* const kRenderLabels[] = {"1x  1280x720 (original)", "2x  2560x1440", "3x  3840x2160"};
-
-// NativeXRenderer (when built in): renderer, its render scale and its present mode.
-#ifdef MADRIDERS_NATIVE_X_RENDERER
-constexpr bool kHasNxr = true;
-#else
-constexpr bool kHasNxr = false;
-#endif
-bool NxrOn() { return kHasNxr && GetBool("native_x_renderer"); }
+// NativeXRenderer: its render scale and its present mode.
 double GetDouble(const char* n) { return cvar::Query<double>(n); }
 
 const double kNxrScales[] = {0.0, 1.0, 1.5, 2.0, 3.0};
@@ -166,7 +148,6 @@ const char* MainLabel(int row) {
   switch (row) {
     case kDisplayMode: return "Display mode";
     case kWindowSize: return "Window size";
-    case kRenderer: return "Renderer";
     case kScreenSync: return "Screen sync";
     case kRenderRes: return "Render resolution";
     case kAntiAlias: return "Anti-aliasing";
@@ -189,18 +170,12 @@ const char* MainNote(int row) {
   switch (row) {
     case kDisplayMode: return "F11 also switches between windowed and fullscreen.";
     case kWindowSize: return "Size of the window in windowed mode. Applies next launch.";
-    case kRenderer:
-      return kHasNxr ? "NativeX draws natively on Vulkan (fast); Xenos emulates the console GPU. Next launch."
-                     : "This build has only the Xenos renderer.";
     case kScreenSync:
-      return NxrOn() ? "V-Sync if you see tearing; Immediate for G-Sync/FreeSync screens."
-                     : "NativeX renderer only.";
+      return "V-Sync if you see tearing; Immediate for G-Sync/FreeSync screens.";
     case kRenderRes:
-      return NxrOn() ? "Above your screen's size renders bigger and scales down: smoother edges. Next launch."
-                     : "2x/3x renders bigger and scales down: smoothest edges. Next launch.";
+      return "Above your screen's size renders bigger and scales down: smoother edges. Next launch.";
     case kAntiAlias:
-      return NxrOn() ? "SMAA: sharp, smooth edges (recommended). FXAA: cheaper, softer. Next launch."
-                     : "Smooths jagged edges after rendering; cheap, slightly softer. Next launch.";
+      return "SMAA: sharp, smooth edges (recommended). FXAA: cheaper, softer. Next launch.";
     case kPerfOverlay: return "Frame rate, frame times and CPU/GPU use in the top-right corner.";
     case kFrameRate: return "30 is the original. Higher may change game speed: test it. Next launch.";
     case kAspect: return "Keep 16:9 adds black bars on other window shapes.";
@@ -235,12 +210,9 @@ std::string MainValue(int row) {
   switch (row) {
     case kDisplayMode: return GetBool("fullscreen") ? "Borderless fullscreen" : "Windowed";
     case kWindowSize: return kWindowSizes[WindowSizeIndex()].label;
-    case kRenderer: return NxrOn() ? "NativeX (Vulkan)" : "Xenos (emulated)";
-    case kScreenSync: return NxrOn() ? kSyncLabels[SyncIndex()] : "-";
-    case kRenderRes:
-      if (NxrOn()) return kNxrScaleLabels[NxrScaleIndex()];
-      return kRenderLabels[std::clamp(GetInt("resolution_scale"), 1, 3) - 1];
-    case kAntiAlias: return NxrOn() ? kNxrAaLabels[NxrAaIndex()] : kAaLabels[AaIndex()];
+    case kScreenSync: return kSyncLabels[SyncIndex()];
+    case kRenderRes: return kNxrScaleLabels[NxrScaleIndex()];
+    case kAntiAlias: return kNxrAaLabels[NxrAaIndex()];
     case kPerfOverlay: return kPerfLabels[std::clamp(GetInt("recomp_perf_overlay"), 0, 2)];
     case kFrameRate: return kFrameRateLabels[FrameRateIndex()];
     case kAspect: return GetBool("present_letterbox") ? "Keep 16:9" : "Stretch to window";
@@ -375,42 +347,22 @@ void GameMenu::Change(int row, int dir) {
       status_ = "Window size changes on the next launch.";
       break;
     }
-    case kRenderer: {
-      if (!kHasNxr) return;
-      SetBool("native_x_renderer", !GetBool("native_x_renderer"));
-      status_ = "The renderer changes on the next launch.";
-      break;
-    }
     case kScreenSync: {
-      if (!NxrOn()) return;
       int i = (SyncIndex() + dir + kSyncCount) % kSyncCount;
       SetStr("native_x_renderer_present_mode", kSyncValues[i]);
       break;
     }
     case kRenderRes: {
-      if (NxrOn()) {
-        int i = (NxrScaleIndex() + dir + kNxrScaleCount) % kNxrScaleCount;
-        char buf[16];
-        std::snprintf(buf, sizeof buf, "%.1f", kNxrScales[i]);
-        SetStr("native_x_renderer_resolution_scale", buf);
-        status_ = "Render resolution changes on the next launch.";
-        break;
-      }
-      int v = std::clamp(GetInt("resolution_scale"), 1, 3) - 1;
-      v = (v + dir + 3) % 3;
-      SetInt("resolution_scale", v + 1);
+      int i = (NxrScaleIndex() + dir + kNxrScaleCount) % kNxrScaleCount;
+      char buf[16];
+      std::snprintf(buf, sizeof buf, "%.1f", kNxrScales[i]);
+      SetStr("native_x_renderer_resolution_scale", buf);
       status_ = "Render resolution changes on the next launch.";
       break;
     }
     case kAntiAlias: {
-      if (NxrOn()) {
-        int i = (NxrAaIndex() + dir + kNxrAaCount) % kNxrAaCount;
-        SetStr("native_x_renderer_antialiasing", kNxrAaValues[i]);
-        status_ = "Anti-aliasing changes on the next launch.";
-        break;
-      }
-      int i = (AaIndex() + dir + kAaCount) % kAaCount;
-      SetStr("swap_post_effect", kAaValues[i]);
+      int i = (NxrAaIndex() + dir + kNxrAaCount) % kNxrAaCount;
+      SetStr("native_x_renderer_antialiasing", kNxrAaValues[i]);
       status_ = "Anti-aliasing changes on the next launch.";
       break;
     }

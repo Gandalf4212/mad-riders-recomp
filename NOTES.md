@@ -25,7 +25,8 @@ No title update (.xexp) was in the package.
 - [x] F1/Esc settings menu, key rebinding (adapted from afterburner-climax-recomp)
 - [x] Boots and plays: menus, races, videos, audio, controller and keyboard
 - [x] DLC import; frame rate options (30/60/120; the game caps itself at 120); performance overlay with CPU/GPU use
-- [x] NativeXRenderer as the default renderer (`docs/native-x-renderer.md`); Xenos emulation as the alternative
+- [x] NativeXRenderer as the renderer (`docs/native-x-renderer.md`); the Xenos choice removed in 0.8.2
+- [x] `shaders.cache` next to the exe: every shader the game ships compiled on the first launch, with a status screen
 
 ## Runtime fixes
 - `XGetGameRegion` returns `recomp_game_region` (default 0xFF, North America, as Xenia). ReXGlue's 0xFFFF maps to no region in `sub_823FE840`, so the ESRB notice (`IntroSplashes\mad_riders_esrb.dds`, shown only for `"us"`) never appeared.

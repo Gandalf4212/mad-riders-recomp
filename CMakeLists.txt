@@ -50,6 +50,7 @@ set(MADRIDERS_SOURCES
     src/crash_handler.cpp
     src/debug_dump.cpp
     src/region.cpp src/dlc.cpp src/perf_overlay.cpp src/frame_rate.cpp
+    src/shader_scan.cpp
 )
 
 if(WIN32)
@@ -64,21 +65,20 @@ if(WIN32)
     target_link_libraries(mad_riders PRIVATE comctl32 comdlg32 gdi32 dbghelp winmm pdh)
 endif()
 
-# NativeXRenderer (optional second renderer, off by default; see docs/native-x-renderer.md).
-# Needs the SDK as a source tree (REXSDK_DIR) with patches/rexglue-sdk applied.
-option(MADRIDERS_NATIVE_X_RENDERER "Build NativeXRenderer in as an optional renderer" OFF)
-if(MADRIDERS_NATIVE_X_RENDERER)
-    if(NOT REXSDK_DIR)
-        message(FATAL_ERROR "MADRIDERS_NATIVE_X_RENDERER needs REXSDK_DIR (the patched SDK source tree)")
-    endif()
-    # Built from source, the SDK does not pass its ImGui headers on (the menu and overlay include them).
-    target_include_directories(mad_riders PRIVATE "${REXSDK_DIR}/thirdparty/imgui")
-    add_subdirectory(thirdparty/native_x_renderer)
-    target_sources(mad_riders PRIVATE src/native_x_renderer_mad_riders.cpp)
-    target_link_libraries(mad_riders PRIVATE native_x_renderer)
-    target_compile_definitions(mad_riders PRIVATE MADRIDERS_NATIVE_X_RENDERER=1)
-    native_x_renderer_copy_runtime(mad_riders)
+# NativeXRenderer draws the game (docs/native-x-renderer.md); the SDK's Xenos plugin only runs its command
+# processor. Needs the SDK as a source tree (REXSDK_DIR) with patches/rexglue-sdk applied.
+if(NOT REXSDK_DIR)
+    message(FATAL_ERROR "mad_riders needs REXSDK_DIR (the ReXGlue SDK source tree with patches/rexglue-sdk applied)")
 endif()
+# Built from source, the SDK does not pass its ImGui headers on (the menu and overlay include them).
+target_include_directories(mad_riders PRIVATE "${REXSDK_DIR}/thirdparty/imgui")
+# The shader scan inflates the game's .rpack sections with stb_image's zlib decoder.
+target_include_directories(mad_riders PRIVATE "${REXSDK_DIR}/thirdparty/stb")
+add_subdirectory(thirdparty/native_x_renderer)
+target_sources(mad_riders PRIVATE src/native_x_renderer_mad_riders.cpp)
+target_link_libraries(mad_riders PRIVATE native_x_renderer)
+target_compile_definitions(mad_riders PRIVATE MADRIDERS_NATIVE_X_RENDERER=1)
+native_x_renderer_copy_runtime(mad_riders)
 
 # CI passes the commit so logs say which build produced them.
 set(MADRIDERS_BUILD "" CACHE STRING "Build identifier shown in the log")

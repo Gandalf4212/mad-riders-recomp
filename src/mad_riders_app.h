@@ -7,6 +7,9 @@
 #pragma once
 
 #include <cstdlib>
+#include <functional>
+#include <system_error>
+#include <vector>
 #include <memory>
 #include <mutex>
 #include <filesystem>
@@ -33,12 +36,13 @@
 #include "game_menu.h"
 #include "package_setup.h"
 
-#ifdef MADRIDERS_NATIVE_X_RENDERER
+#include "shader_scan.h"
+
 #include <native_x_renderer/native_x_renderer.h>
+#include <native_x_renderer/shader_cache_screen.h>
 namespace mad_riders {
 const native_x_renderer::Profile& NativeXRendererProfile();
 }
-#endif
 
 #ifndef MADRIDERS_BUILD
 #define MADRIDERS_BUILD "local"
@@ -77,6 +81,7 @@ class MadRidersApp : public rex::ReXApp {
       std::exit(1);
     }
     config_path_ = paths.config_path;
+    game_data_root_ = paths.game_data_root;
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
@@ -123,18 +128,21 @@ class MadRidersApp : public rex::ReXApp {
       rex::cvar::SetFlagByName("recomp_defaults_version", "3");
       recomp_ui::save_config(config_path_);
     }
-#ifdef MADRIDERS_NATIVE_X_RENDERER
-    // Version 4: NativeXRenderer becomes the default renderer (F1 menu: Renderer; Xenos stays available).
-    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 4) {
-      rex::cvar::SetFlagByName("native_x_renderer", "true");
-      rex::cvar::SetFlagByName("recomp_defaults_version", "4");
+    // NativeXRenderer is the renderer (since 0.8.2 the only one: the Xenos choice is gone). The SDK's own
+    // shader storage is for the Xenos path, which draws nothing here: off.
+    rex::cvar::SetFlagByName("native_x_renderer", "true");
+    rex::cvar::SetFlagByName("store_shaders", "false");
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 5) {
+      rex::cvar::SetFlagByName("recomp_defaults_version", "5");
       recomp_ui::save_config(config_path_);
     }
-#endif
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
     perf_overlay_ = std::make_unique<recomp_ui::PerfOverlay>(drawer);
+    native_x_renderer::ShaderCacheScreen::Style style;
+    style.title = "MAD RIDERS";
+    shader_cache_screen_ = std::make_unique<native_x_renderer::ShaderCacheScreen>(drawer, style);
     rex::ui::RegisterBind("bind_menu", "F1", "Open/close the settings menu",
                           [this] { ToggleMenu(); });
     rex::ui::RegisterBind("bind_menu_alt", "Escape", "Open/close the settings menu",
@@ -167,13 +175,12 @@ class MadRidersApp : public rex::ReXApp {
   void OnPostSetup() override {
     // Re-assert the crash filter in case SDL or a driver replaced it.
     crash_handler::install(rex::filesystem::GetExecutableFolder());
-#ifdef MADRIDERS_NATIVE_X_RENDERER
-    // native_x_renderer (on by default since defaults version 4) draws with NativeXRenderer; off, or if it
-    // cannot start, the Xenos path draws. _trace/_verify work with either.
+    SetUpShaderCache();
+    // NativeXRenderer draws the game. (If it cannot start, on a GPU without the Vulkan features it needs, the
+    // SDK's command processor still draws, as a last resort; the log says why.)
     native_x_renderer::Initialize(mad_riders::NativeXRendererProfile(),
                                   runtime() ? runtime()->graphics_system() : nullptr, window(),
                                   runtime() ? runtime()->cache_root() : std::filesystem::path());
-#endif
     auto* input_sys = static_cast<rex::input::InputSystem*>(runtime()->input_system());
     if (input_sys && imgui_drawer()) {
       input_sys->SetActiveCallback([this]() {
@@ -183,7 +190,10 @@ class MadRidersApp : public rex::ReXApp {
     }
   }
 
-  void OnShutdown() override { perf_overlay_.reset(); }
+  void OnShutdown() override {
+    shader_cache_screen_.reset();
+    perf_overlay_.reset();
+  }
 
  private:
   // recomp_log (off by default; F1 menu, mad_riders.toml, --recomp_log=true): the log file in logs\.
@@ -200,6 +210,33 @@ class MadRidersApp : public rex::ReXApp {
     rex::cvar::SetFlagByName("log_level", "off");
     rex::cvar::SetFlagByName("log_file", (temp / "mad_riders_log_off.log").string());
     recomp_ui::g_log_forced_off = true;
+  }
+
+  // shaders.cache next to the exe: every shader and pipeline, prepared before the game draws. On the first
+  // launch (or with other game data) all of the game's shaders, found in its .rpack files, go into it.
+  // The caches of older builds (the user's cache folder) are removed.
+  void SetUpShaderCache() {
+    const auto exe_dir = rex::filesystem::GetExecutableFolder();
+    if (runtime() && !runtime()->cache_root().empty()) {
+      for (const char* old : {"native_x_renderer", "shaders"}) {
+        std::error_code ec;
+        auto dir = runtime()->cache_root() / old;
+        if (std::filesystem::exists(dir, ec)) {
+          std::filesystem::remove_all(dir, ec);
+          REXLOG_INFO("Old shader cache {}: {}", dir.string(), ec ? "not removed: " + ec.message() : "removed");
+        }
+      }
+    }
+    native_x_renderer::ShaderCacheSource source;
+    source.file = exe_dir / "shaders.cache";
+    const auto data_dir = game_data_root_ / "Haste" / "Data";
+    source.game_fingerprint = shader_scan::fingerprint(data_dir);
+    source.scan = [data_dir](const std::function<void(uint32_t, uint32_t)>& progress) {
+      shader_scan::Result found = shader_scan::scan(data_dir, progress);
+      REXLOG_INFO("Shader scan: {} shaders in {} packs", found.shaders.size(), found.packs);
+      return std::move(found.shaders);
+    };
+    native_x_renderer::SetShaderCache(std::move(source));
   }
 
   void TakeSnapshot(const char* why) {
@@ -248,6 +285,8 @@ class MadRidersApp : public rex::ReXApp {
   }
 
   std::filesystem::path config_path_;
+  std::filesystem::path game_data_root_;
+  std::unique_ptr<native_x_renderer::ShaderCacheScreen> shader_cache_screen_;
   recomp_ui::GameMenu* menu_ = nullptr;  // owned by the ImGui drawer
   std::string dlc_summary_, dlc_summary_status_;
   std::unique_ptr<recomp_ui::PerfOverlay> perf_overlay_;

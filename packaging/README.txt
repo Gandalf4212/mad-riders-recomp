@@ -16,7 +16,7 @@ Setup
   https://aka.ms/vs/17/release/vc_redist.x64.exe
 
 Keys
-  F1 / Esc: settings (display mode, window size, renderer, render resolution,
+  F1 / Esc: settings (display mode, window size, render resolution,
   anti-aliasing, screen sync, frame rate, performance overlay,
   aspect, texture filtering, audio buffer, keyboard on/off, log file,
   key rebinding).
@@ -24,12 +24,12 @@ Keys
   Keyboard: arrows = steer/lean, Z = accelerate, X = brake, Space = boost,
   Enter = start, Backspace = back. A controller works too.
 
-Renderer
-  NativeX (default) draws the game natively with Vulkan (NativeXRenderer).
-  Xenos emulates the console's GPU (ReXGlue). Switch in F1 > Renderer
-  (next launch), or native_x_renderer = true/false in mad_riders.toml.
-  NativeX compiles shaders the first time they are needed (short hitches
-  on a first visit to a track); they are kept for later runs.
+Renderer and shader cache
+  The game is drawn natively with Vulkan (NativeXRenderer).
+  The first launch compiles every shader the game ships into shaders.cache
+  next to the exe, with a progress screen (once). Later launches load it in
+  a few seconds. Shader variants first used while playing are added to it.
+  Delete shaders.cache to build it again.
 
 Bug reports
   Logging is off by default. Turn on F1 > Log file (or start with

@@ -10,13 +10,13 @@ The game runs: menus, races and the DLC tracks have been played on Windows. See 
 known issues.
 
 ## What it includes
-- **Two renderers.** [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) (default) draws the game's
-  Direct3D calls natively with Vulkan: about 3x the frame rate of GPU emulation at the same resolution. The ReXGlue
-  SDK's Xenos GPU emulation is the alternative and the fallback (F1 > Renderer, next launch).
+- **Native renderer.** [NativeXRenderer](https://github.com/ElGuslml/NativeXRenderer) draws the game's Direct3D
+  calls natively with Vulkan: about 3x the frame rate of GPU emulation at the same resolution.
+- **Shader cache** (`shaders.cache` next to the exe): on the first launch every shader the game ships is compiled
+  into it, with a progress screen; later launches load it in a few seconds, and what play adds is kept there.
 - **Frame rate**: 30 (original), 60 or 120 (the game's own limit).
 - **Resolution and anti-aliasing**: NativeX renders at your screen's size by default, or at 1x-3x of the original
   1280x720 (above the screen's size it scales down: smoother edges), with SMAA or FXAA on the scene (not the HUD).
-  Xenos: 1x-3x plus optional FXAA.
 - **Display**: borderless fullscreen (F11) or a window of 1280x720-2560x1440; keep 16:9 or stretch; screen sync
   (fast without tearing, V-Sync, or immediate for G-Sync/FreeSync); anisotropic texture filtering.
 - **Performance overlay**: FPS, frame time and renderer; CPU and GPU use with a frame-time graph.
@@ -40,8 +40,10 @@ It checks that `default.xex` is exactly the version this build was made from
 (21,446,656 bytes, SHA-1 `90349e4daf4812f27faf5c0a9e01edb5ff7d5219`).
 
 F1 / Esc opens the settings menu; F11 toggles fullscreen. Settings are saved in `mad_riders.toml`.
-NativeXRenderer compiles its shaders the first time each one is needed (short hitches on a first visit to a track);
-they are kept for later runs. Its integration is described in [`docs/native-x-renderer.md`](docs/native-x-renderer.md).
+The first launch builds `shaders.cache` (a progress screen shows it; it takes a little while once). Vertex shader
+variants the game makes for each vertex layout are added as they are first drawn, so a first visit to a track can
+still compile a few; they are kept for later runs. Delete `shaders.cache` to build it again. NativeXRenderer's
+integration is described in [`docs/native-x-renderer.md`](docs/native-x-renderer.md).
 
 **DLC** (e.g. the Zambia pack): use **Import DLC** in the F1 menu and pick the package file (from
 `58411240\00000002\`), or put the package (or the whole `58411240` folder) next to the exe and it is
@@ -56,13 +58,12 @@ committed `generated/` code and the `thirdparty/native_x_renderer` submodule. No
 Locally (Windows, VS 2022 with Clang 20+, CMake 3.25+, Ninja), with the patched SDK source tree:
 ```
 git submodule update --init --recursive
-git -C thirdparty/native_x_renderer apply ../../patches/native_x_renderer/0001-scene-size-and-scene-antialiasing.patch
+for %p in (patches\native_x_renderer\*.patch) do git -C thirdparty/native_x_renderer apply ../../%p
 cmake -S . -B out -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ ^
-  -DMADRIDERS_NATIVE_X_RENDERER=ON -DREXGLUE_USE_VULKAN=ON -DREXSDK_DIR=<patched rexglue-sdk>
+  -DREXGLUE_USE_VULKAN=ON -DREXSDK_DIR=<patched rexglue-sdk>
 cmake --build out
 ```
-Without `-DMADRIDERS_NATIVE_X_RENDERER=ON`, an installed stock SDK (`-DCMAKE_PREFIX_PATH=<sdk-install>`) builds the
-Xenos-only game.
+NativeXRenderer is the game's renderer (since 0.8.2 the only one), so the patched SDK source tree is required.
 To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexglue codegen mad_riders_manifest.toml`
 (or just build: with the xex present, codegen re-runs automatically when its inputs change).
 
@@ -72,7 +73,8 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `mad_riders_manifest.toml` | ReXGlue project manifest (codegen input) |
 | `config/overrides.toml` | Codegen fixes (function boundaries) |
 | `generated/` | Recompiled C++ output of `rexglue codegen` (machine-translated game code) |
-| `src/mad_riders_app.h` | App class: first-run setup, Xenos GPU plugin, full-game license, defaults, menu binds |
+| `src/mad_riders_app.h` | App class: first-run setup, NativeXRenderer and shaders.cache, full-game license, defaults, menu binds |
+| `src/shader_scan.cpp` | Finds every shader in the game's `.rpack` files for the first-launch shader cache build |
 | `src/package_setup.*` | Finds or asks for the XBLA package, extracts it (STFS), checks the xex version |
 | `src/game_menu.*`, `src/game_keys.h` | F1/Esc settings menu and Mad Riders key layout |
 | `src/config_file.h` | Writes `mad_riders.toml` with every menu setting and its comment |
@@ -80,7 +82,7 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `src/perf_overlay.*`, `src/frame_rate.*` | Performance overlay; frame rate options |
 | `src/dlc.*` | DLC import and install |
 | `patches/rexglue-sdk/` | NativeXRenderer's changes to the SDK (from ElGuslml/rexglue-sdk) |
-| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits, antialiasing of a scene copy drawn into the frame) |
+| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits, antialiasing of a scene copy drawn into the frame; the indexed shader cache file prepared before the game draws) |
 | `thirdparty/native_x_renderer` | NativeXRenderer (submodule) |
 
 ## Credits

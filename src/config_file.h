@@ -51,15 +51,11 @@ inline const ConfigSection kConfigSections[] = {
      }},
     {"Graphics",
      {
-         {"native_x_renderer", "Renderer: true = NativeX (native Vulkan, fast), false = Xenos (emulated GPU)"},
          {"native_x_renderer_resolution_scale",
           "NativeX render scale: 0 = fit the screen, 1, 1.5, 2 or 3 (above the screen smooths edges)"},
          {"native_x_renderer_antialiasing", "NativeX anti-aliasing: \"smaa\" (default), \"fxaa\" or \"off\""},
          {"native_x_renderer_present_mode",
           "NativeX screen sync: \"\" = fast, no tearing; \"vsync\"; \"immediate\" (G-Sync/FreeSync)"},
-         {"resolution_scale", "Xenos render resolution: 1 = 1280x720, 2 = 2560x1440, 3 = 3840x2160 "
-                              "(2/3 also smooth edges)"},
-         {"swap_post_effect", "Xenos anti-aliasing: \"none\", \"fxaa\" or \"fxaa_extreme\""},
          {"anisotropic_override", "Texture filtering: -1 game default, 0 off, 2 = 2x, 3 = 4x, "
                                   "4 = 8x, 5 = 16x"},
      }},
