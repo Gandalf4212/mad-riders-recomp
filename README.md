@@ -82,7 +82,7 @@ To regenerate the recompiled code, put `default.xex` in `assets/` and run `rexgl
 | `src/perf_overlay.*`, `src/frame_rate.*` | Performance overlay; frame rate options |
 | `src/dlc.*` | DLC import and install |
 | `patches/rexglue-sdk/` | NativeXRenderer's changes to the SDK (from ElGuslml/rexglue-sdk) |
-| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits, antialiasing of a scene copy drawn into the frame; the indexed shader cache file prepared before the game draws) |
+| `patches/native_x_renderer/` | This project's changes to NativeXRenderer (scene size for its pipeline waits, antialiasing of a scene copy drawn into the frame; the indexed shader cache file prepared before the game draws; a per-frame wait budget for first-time compiles) |
 | `thirdparty/native_x_renderer` | NativeXRenderer (submodule) |
 
 ## Credits

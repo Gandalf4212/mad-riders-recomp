@@ -54,6 +54,7 @@ enum MainRow {
   kWindowSize,
   kRenderRes,
   kAntiAlias,
+  kCompileWait,
   kScreenSync,
   kFrameRate,
   kAspect,
@@ -135,6 +136,22 @@ int NxrScaleIndex() {
   return 0;
 }
 
+// native_x_renderer_scene_wait_ms: how long a frame may wait for shaders compiled for the first time (D116)
+const double kWaitValues[] = {0.0, 8.0, 33.0};
+const char* const kWaitLabels[] = {"Pop in (no stutter)", "Short wait (recommended)", "Long wait (fewest pop-ins)"};
+constexpr int kWaitCount = 3;
+int WaitIndex() {
+  double v = GetDouble("native_x_renderer_scene_wait_ms"), best = 0;
+  int index = 0;
+  for (int i = 0; i < kWaitCount; i++) {
+    if (kWaitValues[i] <= v + 0.01 && kWaitValues[i] >= best) {
+      best = kWaitValues[i];
+      index = i;
+    }
+  }
+  return index;
+}
+
 const char* const kSyncValues[] = {"", "vsync", "immediate"};
 const char* const kSyncLabels[] = {"Fast, no tearing", "V-Sync", "Immediate (G-Sync/FreeSync)"};
 constexpr int kSyncCount = 3;
@@ -151,6 +168,7 @@ const char* MainLabel(int row) {
     case kScreenSync: return "Screen sync";
     case kRenderRes: return "Render resolution";
     case kAntiAlias: return "Anti-aliasing";
+    case kCompileWait: return "New shaders";
     case kPerfOverlay: return "Performance overlay";
     case kFrameRate: return "Frame rate";
     case kAspect: return "Aspect ratio";
@@ -176,6 +194,8 @@ const char* MainNote(int row) {
       return "Above your screen's size renders bigger and scales down: smoother edges. Next launch.";
     case kAntiAlias:
       return "SMAA: sharp, smooth edges (recommended). FXAA: cheaper, softer. Next launch.";
+    case kCompileWait:
+      return "Shaders seen for the first time: wait a little for them, or skip the object until ready. Next launch.";
     case kPerfOverlay: return "Frame rate, frame times and CPU/GPU use in the top-right corner.";
     case kFrameRate: return "30 is the original. Higher may change game speed: test it. Next launch.";
     case kAspect: return "Keep 16:9 adds black bars on other window shapes.";
@@ -213,6 +233,7 @@ std::string MainValue(int row) {
     case kScreenSync: return kSyncLabels[SyncIndex()];
     case kRenderRes: return kNxrScaleLabels[NxrScaleIndex()];
     case kAntiAlias: return kNxrAaLabels[NxrAaIndex()];
+    case kCompileWait: return kWaitLabels[WaitIndex()];
     case kPerfOverlay: return kPerfLabels[std::clamp(GetInt("recomp_perf_overlay"), 0, 2)];
     case kFrameRate: return kFrameRateLabels[FrameRateIndex()];
     case kAspect: return GetBool("present_letterbox") ? "Keep 16:9" : "Stretch to window";
@@ -364,6 +385,14 @@ void GameMenu::Change(int row, int dir) {
       int i = (NxrAaIndex() + dir + kNxrAaCount) % kNxrAaCount;
       SetStr("native_x_renderer_antialiasing", kNxrAaValues[i]);
       status_ = "Anti-aliasing changes on the next launch.";
+      break;
+    }
+    case kCompileWait: {
+      int i = (WaitIndex() + dir + kWaitCount) % kWaitCount;
+      char buf[16];
+      std::snprintf(buf, sizeof buf, "%.1f", kWaitValues[i]);
+      SetStr("native_x_renderer_scene_wait_ms", buf);
+      status_ = "Applies on the next launch.";
       break;
     }
     case kPerfOverlay: {

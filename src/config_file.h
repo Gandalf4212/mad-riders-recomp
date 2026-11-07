@@ -54,6 +54,8 @@ inline const ConfigSection kConfigSections[] = {
          {"native_x_renderer_resolution_scale",
           "NativeX render scale: 0 = fit the screen, 1, 1.5, 2 or 3 (above the screen smooths edges)"},
          {"native_x_renderer_antialiasing", "NativeX anti-aliasing: \"smaa\" (default), \"fxaa\" or \"off\""},
+         {"native_x_renderer_scene_wait_ms",
+          "New shaders: ms per frame draws may wait for a first-time compile (0 = pop in, 8 = default, 33)"},
          {"native_x_renderer_present_mode",
           "NativeX screen sync: \"\" = fast, no tearing; \"vsync\"; \"immediate\" (G-Sync/FreeSync)"},
          {"anisotropic_override", "Texture filtering: -1 game default, 0 off, 2 = 2x, 3 = 4x, "

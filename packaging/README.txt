@@ -29,7 +29,9 @@ Renderer and shader cache
   The first launch compiles every shader the game ships into shaders.cache
   next to the exe, with a progress screen (once). Later launches load it in
   a few seconds. Shader variants first used while playing are added to it.
-  Delete shaders.cache to build it again.
+  Delete shaders.cache to build it again. F1 > New shaders: how long a
+  frame may wait for a shader seen for the first time (a short wait hides
+  most pop-in on a first visit; "Pop in" never waits).
 
 Bug reports
   Logging is off by default. Turn on F1 > Log file (or start with

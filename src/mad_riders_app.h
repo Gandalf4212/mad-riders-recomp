@@ -137,6 +137,12 @@ class MadRidersApp : public rex::ReXApp {
       rex::cvar::SetFlagByName("recomp_defaults_version", "5");
       recomp_ui::save_config(config_path_);
     }
+    // Version 6: draws wait up to 8 ms per frame for a shader compiled for the first time (F1 > New shaders).
+    if (rex::cvar::Query<int32_t>("recomp_defaults_version") < 6) {
+      rex::cvar::SetFlagByName("native_x_renderer_scene_wait_ms", "8.0");
+      rex::cvar::SetFlagByName("recomp_defaults_version", "6");
+      recomp_ui::save_config(config_path_);
+    }
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
