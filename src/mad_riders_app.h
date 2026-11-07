@@ -22,6 +22,7 @@
 #include <rex/rex_app.h>
 #include <rex/runtime.h>
 #include <rex/system/xmemory.h>
+#include <rex/system/xthread.h>
 #include <rex/ui/keybinds.h>
 
 #include <imgui.h>
@@ -169,6 +170,14 @@ class MadRidersApp : public rex::ReXApp {
       auto s = dlc::installed_summary(runtime()->kernel_state(), kMadRiders.title_id);
       return s.empty() ? std::string("none") : s;
     }());
+  }
+
+  // The shader cache is prepared before the game's main thread runs at all (held here, resumed when done), so
+  // its timers, intro video and audio never see the wait; the status screen shows meanwhile.
+  void OnPostLaunchModule(rex::system::XThread* thread) override {
+    if (!thread || !native_x_renderer::Renders()) return;
+    thread->Suspend();
+    native_x_renderer::PrepareShaderCacheBeforeLaunch([thread] { thread->Resume(); });
   }
 
   // The game must not see keys/buttons while the menu is open.
